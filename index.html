@@ -25,7 +25,8 @@
 <script>
   const GOOGLE_CLIENT_ID = '957994886927-dbdog40ac76ae53b9v9kvhl23ua5goh7.apps.googleusercontent.com';
   const SCOPES       = 'https://www.googleapis.com/auth/calendar.events';
-  const EVENT_TITLE  = 'Non-Contract Day';
+  const EVENT_TITLE    = 'Non-Contract Day';
+  const WEEKEND_TITLE  = 'Contract Day';
   const CAL_ID       = 'primary';
   const STATE_MARKER = '__RESA_CAL_STATE_2627__';
 </script>
@@ -1036,19 +1037,77 @@ async function calFetch(path, method, body) {
   return method === 'DELETE' ? null : r.json();
 }
 
+// Build lookup: "YYYY-MM-DD" -> { idx, day } for all days in the school year
+function buildDateIndex() {
+  var index = {};
+  MONTHS.forEach(function(m, idx) {
+    var total = new Date(m.year, m.month + 1, 0).getDate();
+    for (var d = 1; d <= total; d++) {
+      var key = m.year + '-' + String(m.month + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      index[key] = { idx: idx, day: d };
+    }
+  });
+  return index;
+}
+
+// Scan the user's actual Google Calendar for existing Non-Contract Day events
+// and import them into the tool's state. Called the first time (no saved state).
+async function importFromCalendar() {
+  var timeMin = encodeURIComponent('2026-07-01T00:00:00Z');
+  var timeMax = encodeURIComponent('2027-06-30T23:59:59Z');
+  var dateIndex = buildDateIndex();
+  var titlesToImport = [
+    { title: EVENT_TITLE,           isHalf: false },
+    { title: 'Half Day – Non-Contract', isHalf: true  },
+  ];
+  for (var t = 0; t < titlesToImport.length; t++) {
+    var title  = titlesToImport[t].title;
+    var isHalf = titlesToImport[t].isHalf;
+    var pageToken = '';
+    do {
+      var qs = 'timeMin=' + timeMin +
+               '&timeMax=' + timeMax +
+               '&q=' + encodeURIComponent(title) +
+               '&singleEvents=true&maxResults=250' +
+               '&fields=nextPageToken,items(id,summary,start)' +
+               (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
+      var result = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
+      var items = result.items || [];
+      items.forEach(function(ev) {
+        if (ev.summary !== title) return; // GCal q= is fuzzy; enforce exact match
+        var dateKey = ev.start && (ev.start.date || (ev.start.dateTime || '').slice(0, 10));
+        if (!dateKey) return;
+        var entry = dateIndex[dateKey];
+        if (!entry) return;
+        var idx = entry.idx, day = entry.day;
+        if (MONTHS[idx].holidays.includes(day)) return; // skip pre-set holidays
+        var stateKey = 'u-' + idx + '-' + day;
+        gcalIds[stateKey] = ev.id;
+        if (isHalf) halfDays[idx].add(day);
+        else        offDays[idx].add(day);
+      });
+      pageToken = result.nextPageToken || '';
+    } while (pageToken);
+  }
+}
+
 async function loadDrive() {
-  const qs = 'q=' + encodeURIComponent('summary="' + STATE_MARKER + '"') + '&maxResults=1&fields=items(id,description)';
-  const list = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
-  const existing = list.items && list.items[0];
+  // 1. Look for our sentinel state event
+  var qs = 'q=' + encodeURIComponent('summary="' + STATE_MARKER + '"') + '&maxResults=1&fields=items(id,description)';
+  var list = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
+  var existing = list.items && list.items[0];
   if (existing) {
     stateEventId = existing.id;
     try {
-      const data = JSON.parse(existing.description || '{}');
+      var data = JSON.parse(existing.description || '{}');
       if (data.offDays)     data.offDays.forEach(function(arr,i)     { if (i < MONTHS.length) offDays[i]     = new Set(arr); });
       if (data.halfDays)    data.halfDays.forEach(function(arr,i)    { if (i < MONTHS.length) halfDays[i]    = new Set(arr); });
       if (data.weekendDays) data.weekendDays.forEach(function(arr,i) { if (i < MONTHS.length) weekendDays[i] = new Set(arr); });
       if (data.gcalIds)     gcalIds = data.gcalIds;
     } catch(e) { console.warn('Could not parse saved state', e); }
+  } else {
+    // 2. First time — import any existing Non-Contract Day events from the calendar
+    await importFromCalendar();
   }
 }
 
@@ -1097,9 +1156,9 @@ function dateStr(year, month, day) {
   return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 }
 
-async function gcalCreate(year, month, day, isHalf) {
+async function gcalCreate(year, month, day, isHalf, customTitle) {
   const date = dateStr(year, month, day);
-  const title = isHalf ? 'Half Day – Non-Contract' : EVENT_TITLE;
+  const title = customTitle || (isHalf ? 'Half Day – Non-Contract' : EVENT_TITLE);
   try {
     const ev = await calFetch(
       '/calendars/' + encodeURIComponent(CAL_ID) + '/events',
@@ -1215,7 +1274,7 @@ function renderApp() {
   MONTHS.forEach((_, i) => wrap.appendChild(buildCard(i)));
   updateStats();
   // Sync holidays in background
-  showLoad('Syncing holidays to Google Calendar…');
+  showLoad('Syncing with Google Calendar…');
   syncHolidaysToGcal()
     .then(() => saveDrive())
     .catch(e => console.warn('Holiday sync failed:', e))
@@ -1444,7 +1503,7 @@ async function toggleWeekendDay(idx, day, dow, dayBtn) {
       dayBtn.setAttribute('aria-pressed', 'true');
       dayBtn.setAttribute('aria-label', `${fullDowName(dow)} ${day} ${m.label} — added as work day, click to remove`);
     }
-    const id = await gcalCreate(m.year, m.month, day, false);
+    const id = await gcalCreate(m.year, m.month, day, false, WEEKEND_TITLE);
     if (id) gcalIds[key] = id;
   }
   // Refresh chips
