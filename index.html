@@ -12,25 +12,22 @@
   1. Go to https://console.cloud.google.com/
   2. Create or select a project
   3. APIs & Services → Library → Enable:
-       • "Google Drive API"
-       • "Google Calendar API"
+       • "Google Calendar API"  (Drive API NOT needed)
   4. APIs & Services → Credentials → + Create Credentials
        → OAuth 2.0 Client ID → Web application
        → Authorized JavaScript origins: https://yourdomain.github.io
   5. OAuth consent screen → Scopes → Add:
-       • drive.appdata
-       • userinfo.profile
-       • calendar.events
+       • calendar.events  (only scope needed)
   6. Paste your Client ID below, host the file, share the URL
   ════════════════════════════════════════════════════════════════
 -->
 
 <script>
   const GOOGLE_CLIENT_ID = '957994886927-dbdog40ac76ae53b9v9kvhl23ua5goh7.apps.googleusercontent.com';
-  const DRIVE_FILE_NAME  = 'school-calendar-2026-2027.json';
-  const SCOPES           = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar.events';
-  const EVENT_TITLE      = 'Non-Contract Day';
-  const CAL_ID           = 'primary';
+  const SCOPES       = 'https://www.googleapis.com/auth/calendar.events';
+  const EVENT_TITLE  = 'Non-Contract Day';
+  const CAL_ID       = 'primary';
+  const STATE_MARKER = '__RESA_CAL_STATE_2627__';
 </script>
 
 <style>
@@ -927,9 +924,9 @@ let offDays     = MONTHS.map(() => new Set());
 let halfDays    = MONTHS.map(() => new Set());
 let weekendDays = MONTHS.map(() => new Set());
 let gcalIds   = {};  // "u-{idx}-{day}" or "h-{idx}-{day}" → GCal event id
-let token     = null;
-let fileId    = null;
-let syncTimer = null;
+let token        = null;
+let stateEventId = null;
+let syncTimer    = null;
 
 // ── Auth ───────────────────────────────────────────────────────
 // Shared token client — created once, reused for silent refresh and explicit sign-in
@@ -1010,7 +1007,7 @@ async function loadProfile() {
 
 function signOut() {
   if (token) { try { google.accounts.oauth2.revoke(token, ()=>{}); } catch(e){} }
-  token = null; fileId = null;
+  token = null; stateEventId = null;
   offDays  = MONTHS.map(() => new Set());
   gcalIds  = {};
   document.getElementById('app-screen').style.display = 'none';
@@ -1020,67 +1017,67 @@ function signOut() {
 }
 
 // ── Google Drive ───────────────────────────────────────────────
+// ── Calendar state storage ────────────────────────────────────
+// State is stored as JSON in the description of a hidden sentinel event
+// dated Jan 1 2000 so it never shows in normal calendar views.
+
+async function calFetch(path, method, body) {
+  method = method || 'GET';
+  const opts = {
+    method: method,
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch('https://www.googleapis.com/calendar/v3' + path, opts);
+  if (!r.ok) {
+    const txt = await r.text();
+    throw new Error(r.status + ': ' + txt);
+  }
+  return method === 'DELETE' ? null : r.json();
+}
+
 async function loadDrive() {
-  const list = await driveGet(
-    'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)'
-  );
-  const existing = list.files.find(f => f.name === DRIVE_FILE_NAME);
+  const qs = 'q=' + encodeURIComponent('summary="' + STATE_MARKER + '"') + '&maxResults=1&fields=items(id,description)';
+  const list = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
+  const existing = list.items && list.items[0];
   if (existing) {
-    fileId = existing.id;
-    const r = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-      { headers: { Authorization: 'Bearer ' + token } }
-    );
-    const data = await r.json();
-    if (data.offDays)     data.offDays.forEach((arr, i)     => { if (i < MONTHS.length) offDays[i]     = new Set(arr); });
-    if (data.halfDays)    data.halfDays.forEach((arr, i)    => { if (i < MONTHS.length) halfDays[i]    = new Set(arr); });
-    if (data.weekendDays) data.weekendDays.forEach((arr, i) => { if (i < MONTHS.length) weekendDays[i] = new Set(arr); });
-    if (data.gcalIds)  gcalIds = data.gcalIds;
+    stateEventId = existing.id;
+    try {
+      const data = JSON.parse(existing.description || '{}');
+      if (data.offDays)     data.offDays.forEach(function(arr,i)     { if (i < MONTHS.length) offDays[i]     = new Set(arr); });
+      if (data.halfDays)    data.halfDays.forEach(function(arr,i)    { if (i < MONTHS.length) halfDays[i]    = new Set(arr); });
+      if (data.weekendDays) data.weekendDays.forEach(function(arr,i) { if (i < MONTHS.length) weekendDays[i] = new Set(arr); });
+      if (data.gcalIds)     gcalIds = data.gcalIds;
+    } catch(e) { console.warn('Could not parse saved state', e); }
   }
 }
 
 async function saveDrive() {
   setSyncMsg('saving');
-  const payload = JSON.stringify({
+  const description = JSON.stringify({
     version: 1,
     schoolYear: '2026-2027',
     savedAt: new Date().toISOString(),
-    offDays:     offDays.map(s     => [...s]),
-    halfDays:    halfDays.map(s    => [...s]),
-    weekendDays: weekendDays.map(s => [...s]),
-    gcalIds,
+    offDays:     offDays.map(function(s)     { return [...s]; }),
+    halfDays:    halfDays.map(function(s)    { return [...s]; }),
+    weekendDays: weekendDays.map(function(s) { return [...s]; }),
+    gcalIds: gcalIds,
   });
-  if (!fileId) {
-    const meta = await drivePost(
-      'https://www.googleapis.com/drive/v3/files',
-      { name: DRIVE_FILE_NAME, parents: ['appDataFolder'] }
-    );
-    fileId = meta.id;
+  const eventBody = {
+    summary: STATE_MARKER,
+    description: description,
+    start: { date: '2000-01-01' },
+    end:   { date: '2000-01-02' },
+    visibility: 'private',
+    transparency: 'transparent',
+  };
+  if (stateEventId) {
+    await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events/' + stateEventId, 'PUT', eventBody);
+  } else {
+    const created = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events', 'POST', eventBody);
+    stateEventId = created.id;
   }
-  await fetch(
-    `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
-    {
-      method: 'PATCH',
-      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: payload,
-    }
-  );
   setSyncMsg('saved');
-}
-
-async function driveGet(url) {
-  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-  if (!r.ok) throw new Error(r.status);
-  return r.json();
-}
-async function drivePost(url, body) {
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(r.status);
-  return r.json();
 }
 
 function scheduleSave() {
@@ -1091,7 +1088,7 @@ function scheduleSave() {
 function setSyncMsg(s) {
   const el = document.getElementById('sync-msg');
   el.className = 'sync-msg ' + s;
-  el.textContent = s === 'saving' ? '⟳ Saving…' : s === 'saved' ? '✓ Saved to Drive' : '⚠ Save failed';
+  el.textContent = s === 'saving' ? '⟳ Saving…' : s === 'saved' ? '✓ Saved to Calendar' : '⚠ Save failed';
   if (s === 'saved') setTimeout(() => { el.textContent = ''; el.className = 'sync-msg'; }, 3000);
 }
 
@@ -1100,34 +1097,22 @@ function dateStr(year, month, day) {
   return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 }
 
-async function gcalCreate(year, month, day, isHalf = false) {
+async function gcalCreate(year, month, day, isHalf) {
   const date = dateStr(year, month, day);
   const title = isHalf ? 'Half Day – Non-Contract' : EVENT_TITLE;
   try {
-    const r = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events`,
-      {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          summary: title,
-          start: { date },
-          end:   { date },
-          transparency: 'transparent',
-        }),
-      }
+    const ev = await calFetch(
+      '/calendars/' + encodeURIComponent(CAL_ID) + '/events',
+      'POST',
+      { summary: title, start: { date: date }, end: { date: date }, transparency: 'transparent' }
     );
-    if (!r.ok) return null;
-    return (await r.json()).id;
+    return ev.id;
   } catch(e) { return null; }
 }
 
 async function gcalDelete(eventId) {
   try {
-    await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events/${eventId}`,
-      { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } }
-    );
+    await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events/' + eventId, 'DELETE');
   } catch(e) {}
 }
 
