@@ -26,6 +26,8 @@
   const GOOGLE_CLIENT_ID = '957994886927-dbdog40ac76ae53b9v9kvhl23ua5goh7.apps.googleusercontent.com';
   const SCOPES       = 'https://www.googleapis.com/auth/calendar.events';
   const EVENT_TITLE    = 'Non-Contract Day';
+  const HOLIDAY_TITLE  = 'Holiday';
+  const HALF_TITLE     = 'Half Day – Non-Contract';
   const WEEKEND_TITLE  = 'Contract Day';
   const CAL_ID       = 'primary';
   const STATE_MARKER = '__RESA_CAL_STATE_2627__';
@@ -1133,8 +1135,10 @@ async function loadProfile() {
 function signOut() {
   if (token) { try { google.accounts.oauth2.revoke(token, ()=>{}); } catch(e){} }
   token = null; stateEventId = null;
-  offDays  = MONTHS.map(() => new Set());
-  gcalIds  = {};
+  offDays     = MONTHS.map(() => new Set());
+  halfDays    = MONTHS.map(() => new Set());
+  weekendDays = MONTHS.map(() => new Set());
+  gcalIds     = {};
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
   // Return focus to sign-in button
@@ -1181,8 +1185,9 @@ async function importFromCalendar() {
   var timeMax = encodeURIComponent('2027-06-30T23:59:59Z');
   var dateIndex = buildDateIndex();
   var titlesToImport = [
-    { title: EVENT_TITLE,           isHalf: false },
-    { title: 'Half Day – Non-Contract', isHalf: true  },
+    { title: EVENT_TITLE,   isHalf: false },
+    { title: HOLIDAY_TITLE, isHalf: false },
+    { title: HALF_TITLE,    isHalf: true  },
   ];
   for (var t = 0; t < titlesToImport.length; t++) {
     var title  = titlesToImport[t].title;
@@ -1280,17 +1285,125 @@ function dateStr(year, month, day) {
   return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 }
 
+function nextDateStr(year, month, day) {
+  const d = new Date(year, month, day);
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function previousDateStr(year, month, day) {
+  const d = new Date(year, month, day);
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function uniqueTitles(titles) {
+  return [...new Set((titles || []).filter(Boolean))];
+}
+
+function dayBlockTitlesFor(title) {
+  // These titles are mutually exclusive on the same calendar day.
+  // If either already exists, reuse one existing event instead of creating another.
+  if (title === EVENT_TITLE || title === HOLIDAY_TITLE) return [EVENT_TITLE, HOLIDAY_TITLE];
+  return [title];
+}
+
+async function gcalFindEventsOnDate(year, month, day, titles) {
+  const date = dateStr(year, month, day);
+  const prevDate = previousDateStr(year, month, day);
+  const endDate = nextDateStr(year, month, day);
+  const queryEndDate = nextDateStr(year, month, day + 1);
+  const out = [];
+
+  for (const title of uniqueTitles(titles)) {
+    let pageToken = '';
+    do {
+      const qs =
+        'timeMin=' + encodeURIComponent(prevDate + 'T00:00:00Z') +
+        '&timeMax=' + encodeURIComponent(queryEndDate + 'T00:00:00Z') +
+        '&q=' + encodeURIComponent(title) +
+        '&singleEvents=true&maxResults=50' +
+        '&fields=nextPageToken,items(id,summary,start,end,status)' +
+        (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
+
+      const result = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
+      const items = result.items || [];
+      items.forEach(function(ev) {
+        if (ev.status === 'cancelled') return;
+        if (ev.summary !== title) return; // Calendar q= is fuzzy; exact match only.
+        const startDate = ev.start && (ev.start.date || (ev.start.dateTime || '').slice(0, 10));
+        if (startDate !== date) return;
+        out.push(ev);
+      });
+      pageToken = result.nextPageToken || '';
+    } while (pageToken);
+  }
+
+  return out;
+}
+
+async function gcalKeepOneEventOnDate(year, month, day, titles, preferredTitle) {
+  const matches = await gcalFindEventsOnDate(year, month, day, titles);
+  if (!matches.length) return null;
+
+  matches.sort(function(a, b) {
+    if (a.summary === preferredTitle && b.summary !== preferredTitle) return -1;
+    if (a.summary !== preferredTitle && b.summary === preferredTitle) return 1;
+    return String(a.id).localeCompare(String(b.id));
+  });
+
+  const keep = matches[0];
+  const seenIds = new Set([keep.id]);
+  for (const ev of matches.slice(1)) {
+    if (seenIds.has(ev.id)) continue;
+    seenIds.add(ev.id);
+    await gcalDelete(ev.id);
+  }
+  return keep.id;
+}
+
+async function gcalDeleteEventsOnDate(year, month, day, titles) {
+  const matches = await gcalFindEventsOnDate(year, month, day, titles);
+  const deleted = new Set();
+  for (const ev of matches) {
+    if (deleted.has(ev.id)) continue;
+    deleted.add(ev.id);
+    await gcalDelete(ev.id);
+  }
+}
+
 async function gcalCreate(year, month, day, isHalf, customTitle) {
   const date = dateStr(year, month, day);
-  const title = customTitle || (isHalf ? 'Half Day – Non-Contract' : EVENT_TITLE);
+  const endDate = nextDateStr(year, month, day);
+  const title = customTitle || (isHalf ? HALF_TITLE : EVENT_TITLE);
+
   try {
+    // First, check the exact date and exact title group. This prevents duplicate
+    // “Non-Contract Day” / “Holiday” events on the same calendar day.
+    const existingId = await gcalKeepOneEventOnDate(
+      year,
+      month,
+      day,
+      dayBlockTitlesFor(title),
+      title
+    );
+    if (existingId) return existingId;
+
     const ev = await calFetch(
       '/calendars/' + encodeURIComponent(CAL_ID) + '/events',
       'POST',
-      { summary: title, start: { date: date }, end: { date: date }, transparency: 'transparent' }
+      {
+        summary: title,
+        start: { date: date },
+        end: { date: endDate },
+        transparency: 'transparent'
+      }
     );
     return ev.id;
-  } catch(e) { return null; }
+  } catch(e) {
+    console.warn('Could not create calendar event:', e);
+    return null;
+  }
 }
 
 async function gcalDelete(eventId) {
@@ -1300,13 +1413,14 @@ async function gcalDelete(eventId) {
 }
 
 async function syncHolidaysToGcal() {
-  // Only sync true holidays (days off), NOT notes-only days like Spring Break / Ed Tech Forward
+  // Manual-use helper only. Do not call this during normal page load.
+  // Only sync true holidays (days off), NOT notes-only days like Spring Break / Ed Tech Forward.
   for (let i = 0; i < MONTHS.length; i++) {
     const m = MONTHS[i];
     for (const day of m.holidays) {
       const key = `h-${i}-${day}`;
       if (!gcalIds[key]) {
-        const id = await gcalCreate(m.year, m.month, day);
+        const id = await gcalCreate(m.year, m.month, day, false, HOLIDAY_TITLE);
         if (id) gcalIds[key] = id;
       }
     }
@@ -1397,12 +1511,11 @@ function renderApp() {
   wrap.innerHTML = '';
   MONTHS.forEach((_, i) => wrap.appendChild(buildCard(i)));
   updateStats();
-  // Sync holidays in background
-  showLoad('Syncing with Google Calendar…');
-  syncHolidaysToGcal()
-    .then(() => saveDrive())
-    .catch(e => console.warn('Holiday sync failed:', e))
-    .finally(() => hideLoad());
+
+  // Important: do not write Google Calendar events during normal page load.
+  // The app should read saved state, render the calendar, and only write changes
+  // when the user clicks a day, marks a half day, or adds/removes weekend work.
+  hideLoad();
 }
 
 function buildCard(idx) {
@@ -1619,6 +1732,7 @@ async function toggleWeekendDay(idx, day, dow, dayBtn) {
       dayBtn.setAttribute('aria-label', `${fullDowName(dow)} ${day} ${m.label} — click to add as work day`);
     }
     if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
+    await gcalDeleteEventsOnDate(m.year, m.month, day, [WEEKEND_TITLE]);
   } else {
     // Add
     weekendDays[idx].add(day);
@@ -1627,6 +1741,7 @@ async function toggleWeekendDay(idx, day, dow, dayBtn) {
       dayBtn.setAttribute('aria-pressed', 'true');
       dayBtn.setAttribute('aria-label', `${fullDowName(dow)} ${day} ${m.label} — added as work day, click to remove`);
     }
+    await gcalDeleteEventsOnDate(m.year, m.month, day, [HALF_TITLE]);
     const id = await gcalCreate(m.year, m.month, day, false, WEEKEND_TITLE);
     if (id) gcalIds[key] = id;
   }
@@ -1658,8 +1773,9 @@ async function toggle(idx, day, btn) {
     btn.classList.add('half');
     btn.setAttribute('aria-pressed', 'mixed');
     btn.setAttribute('aria-label', `${day} ${m.label} — half day worked, click to mark as worked`);
-    // Remove full-day-off GCal event; add half-day event
+    // Remove any full-day-off events on this date; add exactly one half-day event.
     if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
+    await gcalDeleteEventsOnDate(m.year, m.month, day, [EVENT_TITLE, HOLIDAY_TITLE]);
     const id = await gcalCreate(m.year, m.month, day, true);
     if (id) gcalIds[key] = id;
   } else if (halfDays[idx].has(day)) {
@@ -1669,12 +1785,14 @@ async function toggle(idx, day, btn) {
     btn.setAttribute('aria-pressed', 'false');
     btn.setAttribute('aria-label', `${day} ${m.label} — worked, click to mark as day off`);
     if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
+    await gcalDeleteEventsOnDate(m.year, m.month, day, [HALF_TITLE]);
   } else {
     // worked → off
     offDays[idx].add(day);
     btn.classList.add('off');
     btn.setAttribute('aria-pressed', 'true');
     btn.setAttribute('aria-label', `${day} ${m.label} — day off, click to mark as half day`);
+    await gcalDeleteEventsOnDate(m.year, m.month, day, [HALF_TITLE]);
     const id = await gcalCreate(m.year, m.month, day, false);
     if (id) gcalIds[key] = id;
   }
