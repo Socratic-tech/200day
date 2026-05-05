@@ -1054,6 +1054,7 @@ let gcalIds   = {};  // "u-{idx}-{day}" or "h-{idx}-{day}" → GCal event id
 let token        = null;
 let stateEventId = null;
 let syncTimer    = null;
+let currentUserFullName = '';
 
 // ── Auth ───────────────────────────────────────────────────────
 // Shared token client — created once, reused for silent refresh and explicit sign-in
@@ -1108,18 +1109,23 @@ function startSignIn() {
 }
 
 function applyProfile(u) {
-  const name = u.given_name || u.name || '';
-  document.getElementById('u-name').textContent = name;
-  // Update aria-label with actual name
-  document.querySelector('.user-chip').setAttribute('aria-label', `Signed in as ${name}`);
+  const fullName = u.name || [u.given_name, u.family_name].filter(Boolean).join(' ') || u.email || '';
+  const displayName = fullName;
+  currentUserFullName = fullName;
+
+  document.getElementById('u-name').textContent = displayName;
+
+  // Update aria-label with actual full name
+  document.querySelector('.user-chip').setAttribute('aria-label', `Signed in as ${displayName}`);
+
   if (u.picture) {
     const img = document.getElementById('u-avatar');
     img.src = u.picture;
-    img.alt = `${name}'s profile photo`;
+    img.alt = `${displayName}'s profile photo`;
     img.style.display = 'block';
     document.getElementById('u-fallback').style.display = 'none';
   } else {
-    document.getElementById('u-fallback').textContent = name[0]?.toUpperCase() || '?';
+    document.getElementById('u-fallback').textContent = displayName[0]?.toUpperCase() || '?';
   }
 }
 
@@ -1134,7 +1140,7 @@ async function loadProfile() {
 
 function signOut() {
   if (token) { try { google.accounts.oauth2.revoke(token, ()=>{}); } catch(e){} }
-  token = null; stateEventId = null;
+  token = null; stateEventId = null; currentUserFullName = '';
   offDays     = MONTHS.map(() => new Set());
   halfDays    = MONTHS.map(() => new Set());
   weekendDays = MONTHS.map(() => new Set());
@@ -1871,11 +1877,14 @@ function buildPrintView() {
     '<div class="pv-title">2026-2027 School Year Calendar</div>';
   pv.appendChild(hdr);
 
-  // Name line
+  // Name line — print the signed-in user's full Google profile name
   var nameLine = document.createElement('div');
   nameLine.className = 'pv-name-line';
-  var nameVal = document.getElementById('u-name') ? document.getElementById('u-name').textContent : '';
-  nameLine.innerHTML = 'Name: <span>' + nameVal + '</span>';
+  var nameVal = currentUserFullName || (document.getElementById('u-name') ? document.getElementById('u-name').textContent : '');
+  nameLine.appendChild(document.createTextNode('Name: '));
+  var nameSpan = document.createElement('span');
+  nameSpan.textContent = nameVal || '________________________';
+  nameLine.appendChild(nameSpan);
   pv.appendChild(nameLine);
 
   // Month pairs (2 per row)
