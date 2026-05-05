@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026–2027 School Year Calendar</title>
+
+<!--
+  ════════════════════════════════════════════════════════════════
+  SETUP — Do this before sharing with staff
+  ════════════════════════════════════════════════════════════════
+  1. Go to https://console.cloud.google.com/
+  2. Create or select a project
+  3. APIs & Services → Library → Enable "Google Drive API"
+  4. APIs & Services → Credentials → + Create Credentials
+       → OAuth 2.0 Client ID
+       → Application type: Web application
+       → Authorized JavaScript origins: your hosting URL
+         (e.g. https://yourschool.github.io  or  http://localhost)
+  5. Copy the Client ID, paste it below replacing YOUR_CLIENT_ID_HERE
+  6. Host this single .html file anywhere (GitHub Pages, Google Sites,
+     a shared network drive opened in a browser, etc.)
+  ════════════════════════════════════════════════════════════════
+-->
+
+<script>
+  const GOOGLE_CLIENT_ID = '957994886927-dbdog40ac76ae53b9v9kvhl23ua5goh7.apps.googleusercontent.com';
+  const DRIVE_FILE_NAME  = 'school-calendar-2026-2027.json';
+  const SCOPES           = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.profile';
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+
+:root {
+  --navy:       #0d2152;
+  --blue:       #1a4fc4;
+  --blue-mid:   #2563eb;
+  --blue-soft:  #dbeafe;
+  --red:        #dc2626;
+  --red-soft:   #fee2e2;
+  --green:      #16a34a;
+  --green-soft: #dcfce7;
+  --amber:      #b45309;
+  --amber-soft: #fef3c7;
+  --surface:    #ffffff;
+  --bg:         #f0f4fc;
+  --border:     #e2e8f0;
+  --text:       #0f172a;
+  --muted:      #64748b;
+  --radius:     12px;
+  --shadow:     0 4px 24px rgba(13,33,82,0.10);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* AUTH SCREEN */
+#auth-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: linear-gradient(140deg, var(--navy) 0%, #1e3a8a 100%);
+  padding: 40px 20px;
+}
+#auth-screen h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: white;
+  text-align: center;
+  line-height: 1.15;
+}
+#auth-screen > p {
+  color: rgba(255,255,255,0.65);
+  font-size: 1rem;
+  text-align: center;
+  max-width: 380px;
+  line-height: 1.6;
+}
+.auth-card {
+  background: white;
+  border-radius: 20px;
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.28);
+  max-width: 360px;
+  width: 100%;
+}
+.badge-pill {
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  padding: 4px 14px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+.auth-card h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.35rem;
+  color: var(--navy);
+  text-align: center;
+  margin-top: -4px;
+}
+.auth-card p {
+  font-size: 0.83rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.55;
+}
+#sign-in-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 24px;
+  font-size: 0.92rem;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: background 0.18s, transform 0.1s;
+}
+#sign-in-btn:hover { background: var(--blue-mid); }
+#sign-in-btn:active { transform: scale(0.98); }
+.config-warn {
+  background: #fff3cd;
+  border: 1px solid #f0c040;
+  color: #7a5700;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  text-align: center;
+  display: none;
+  width: 100%;
+}
+.auth-fine {
+  font-size: 0.7rem !important;
+  color: #94a3b8 !important;
+  margin-top: -6px;
+}
+
+/* APP */
+#app-screen { display: none; }
+
+/* TOPBAR */
+.topbar {
+  background: var(--navy);
+  color: white;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 58px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 2px 20px rgba(13,33,82,0.35);
+}
+.topbar-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.topbar-title small {
+  display: block;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.65rem;
+  opacity: 0.55;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+.days-pill {
+  background: rgba(255,255,255,0.13);
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: 24px;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.days-pill .dn { font-size: 1.1rem; font-weight: 700; }
+.sync-msg {
+  font-size: 0.68rem;
+  opacity: 0.7;
+  white-space: nowrap;
+  min-width: 80px;
+  text-align: right;
+  transition: color 0.3s;
+}
+.sync-msg.saving { color: #fde68a; opacity: 1; }
+.sync-msg.saved  { color: #bbf7d0; opacity: 1; }
+.sync-msg.error  { color: #fca5a5; opacity: 1; }
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+.u-avatar {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.28);
+  object-fit: cover;
+  display: none;
+}
+.u-fallback {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--blue-mid);
+  border: 2px solid rgba(255,255,255,0.28);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.68rem; font-weight: 700;
+}
+.btn-out {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.28);
+  color: white;
+  border-radius: 7px;
+  padding: 5px 12px;
+  font-size: 0.72rem;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s;
+}
+.btn-out:hover { background: rgba(255,255,255,0.12); }
+
+/* SUMMARY STRIP */
+.summary {
+  background: white;
+  border-bottom: 1px solid var(--border);
+  padding: 9px 24px;
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.s-stat { display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.d-blue  { background: var(--blue-mid); }
+.d-red   { background: var(--red); }
+.d-green { background: var(--green); }
+.s-goal  { margin-left: auto; font-weight: 600; font-size: 0.8rem; }
+.s-goal.met   { color: var(--green); }
+.s-goal.over  { color: var(--amber); }
+.s-goal.under { color: var(--muted); }
+
+/* LEGEND + ACTIONS */
+.legend-row {
+  max-width: 1140px;
+  margin: 20px auto 0;
+  padding: 0 20px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+.leg { display: flex; align-items: center; gap: 6px; }
+.sw { width: 13px; height: 13px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.08); }
+.sw-h { background: var(--amber-soft); border-color: #f0d090; }
+.sw-o { background: var(--red-soft);   border-color: #fca5a5; }
+.leg-hint { font-style: italic; }
+.btn-print {
+  margin-left: auto;
+  background: var(--navy);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  padding: 6px 16px;
+  font-size: 0.74rem;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s;
+}
+.btn-print:hover { background: var(--blue-mid); }
+
+/* CALENDAR GRID */
+.cal-wrap {
+  max-width: 1140px;
+  margin: 16px auto;
+  padding: 0 20px 50px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+/* MONTH CARD */
+.month-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  animation: fadeUp 0.4s ease both;
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.month-card:nth-child(1)  { animation-delay:.03s }
+.month-card:nth-child(2)  { animation-delay:.06s }
+.month-card:nth-child(3)  { animation-delay:.09s }
+.month-card:nth-child(4)  { animation-delay:.12s }
+.month-card:nth-child(5)  { animation-delay:.15s }
+.month-card:nth-child(6)  { animation-delay:.18s }
+.month-card:nth-child(7)  { animation-delay:.21s }
+.month-card:nth-child(8)  { animation-delay:.24s }
+.month-card:nth-child(9)  { animation-delay:.27s }
+.month-card:nth-child(10) { animation-delay:.30s }
+.month-card:nth-child(11) { animation-delay:.33s }
+.month-card:nth-child(12) { animation-delay:.36s }
+
+.m-head {
+  background: var(--navy);
+  color: white;
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.m-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 0.98rem;
+}
+.m-tally {
+  background: rgba(255,255,255,0.14);
+  border-radius: 20px;
+  padding: 2px 11px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+.m-tally .tn { font-size: 0.9rem; }
+
+.dow-row {
+  display: grid;
+  grid-template-columns: repeat(5,1fr);
+  background: #f8faff;
+  border-bottom: 1px solid var(--border);
+}
+.dow-cell {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  padding: 5px 0;
+  text-transform: uppercase;
+}
+
+.day-row { display: grid; grid-template-columns: repeat(5,1fr); }
+.day-cell {
+  text-align: center;
+  padding: 8px 3px 6px;
+  font-size: 0.86rem;
+  border-right: 1px solid #f1f5fb;
+  border-bottom: 1px solid #f1f5fb;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  position: relative;
+  min-height: 36px;
+  user-select: none;
+}
+.day-cell:nth-child(5n) { border-right: none; }
+.day-cell.empty { cursor: default; }
+.day-cell:not(.empty):not(.holiday):hover { background: var(--blue-soft); color: var(--blue); }
+.day-cell.holiday {
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-weight: 600;
+  cursor: default;
+}
+.day-cell.holiday::after {
+  content: '★';
+  position: absolute;
+  top: 1px; right: 3px;
+  font-size: 0.42rem;
+  opacity: 0.65;
+}
+.day-cell.off {
+  background: var(--red-soft);
+  color: var(--red);
+  font-weight: 600;
+}
+.day-cell.off::after {
+  content: '✕';
+  position: absolute;
+  top: 1px; right: 3px;
+  font-size: 0.48rem;
+  opacity: 0.6;
+}
+.day-cell:not(.empty):not(.holiday).off:hover { background: #fecaca; }
+
+.h-strip {
+  font-size: 0.68rem;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border-top: 1px dashed #f0d090;
+  padding: 5px 13px;
+  line-height: 1.45;
+}
+
+/* FOOTER */
+.footer-bar {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 20px 36px;
+}
+.footer-inner {
+  background: var(--navy);
+  border-radius: var(--radius);
+  color: white;
+  padding: 18px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.f-label { font-family: 'Playfair Display', serif; font-size: 1rem; opacity: 0.8; }
+.f-num   { font-family: 'Playfair Display', serif; font-size: 2.2rem; line-height: 1; }
+.f-goal  {
+  font-size: 0.72rem;
+  background: rgba(255,255,255,0.14);
+  border-radius: 20px;
+  padding: 4px 15px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+/* LOADING */
+#loading {
+  position: fixed; inset: 0;
+  background: rgba(13,33,82,0.85);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 999;
+  color: white;
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+}
+.spinner {
+  width: 34px; height: 34px;
+  border: 3px solid rgba(255,255,255,0.18);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* PRINT */
+@media print {
+  #auth-screen, .btn-out, .sync-msg, .legend-row, .btn-print { display: none !important; }
+  body { background: white; }
+  .topbar, .m-head, .footer-inner { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .day-cell.off, .day-cell.holiday { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .month-card { break-inside: avoid; box-shadow: none; border: 1px solid #ddd; }
+  .topbar { position: static; }
+  .cal-wrap { gap: 10px; margin-top: 10px; }
+}
+
+/* RESPONSIVE */
+@media (max-width: 680px) {
+  .cal-wrap { grid-template-columns: 1fr; }
+  .topbar { padding: 0 12px; gap: 8px; }
+  .footer-inner { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <span id="loading-msg">Loading…</span>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <h1>2026–2027<br>School Year Calendar</h1>
+  <p>Sign in with your Google account to access and sync your personal 200-day calendar.</p>
+  <div class="auth-card">
+    <div class="badge-pill">200 Day Template · Berrien RESA</div>
+    <h2>Staff Calendar</h2>
+    <p>Track your working days across devices. Your calendar is saved privately in your own Google Drive.</p>
+    <div class="config-warn" id="config-warn">
+      ⚠️ Google Client ID not set. Edit <code>GOOGLE_CLIENT_ID</code> at the top of this file before deploying. See setup instructions in the source.
+    </div>
+    <button id="sign-in-btn" onclick="startSignIn()">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#fff" d="M44.5 20H24v8.5h11.8C34.7 33.9 30.1 37 24 37c-7.2 0-13-5.8-13-13s5.8-13 13-13c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.6 4.1 29.6 2 24 2 11.8 2 2 11.8 2 24s9.8 22 22 22c11 0 21-8 21-22 0-1.3-.2-2.7-.5-4z"/></svg>
+      Sign in with Google
+    </button>
+    <p class="auth-fine">Your data is stored only in your personal Google Drive</p>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+
+  <nav class="topbar">
+    <div class="topbar-title">
+      2026–2027 School Year Calendar
+      <small>200 Day Template · Berrien RESA</small>
+    </div>
+    <div class="days-pill"><span class="dn" id="top-total">0</span> days worked</div>
+    <span class="sync-msg" id="sync-msg"></span>
+    <div class="user-chip">
+      <div class="u-fallback" id="u-fallback"></div>
+      <img class="u-avatar" id="u-avatar" src="" alt="">
+      <span id="u-name"></span>
+    </div>
+    <button class="btn-out" onclick="signOut()">Sign out</button>
+  </nav>
+
+  <div class="summary">
+    <div class="s-stat"><div class="dot d-blue"></div> Total weekdays: <strong id="s-weekdays">&nbsp;</strong></div>
+    <div class="s-stat"><div class="dot d-red"></div> Days off: <strong id="s-off">&nbsp;</strong></div>
+    <div class="s-stat"><div class="dot d-green"></div> Days worked: <strong id="s-worked">&nbsp;</strong></div>
+    <div class="s-goal under" id="s-goal"></div>
+  </div>
+
+  <div class="legend-row">
+    <div class="leg"><div class="sw sw-h"></div> Pre-set holiday / closure</div>
+    <div class="leg"><div class="sw sw-o"></div> Marked as day off</div>
+    <span class="leg-hint">Click any white date to toggle it as a personal day off</span>
+    <button class="btn-print" onclick="window.print()">🖨 Print / Save PDF</button>
+  </div>
+
+  <div class="cal-wrap" id="cal-wrap"></div>
+
+  <div class="footer-bar">
+    <div class="footer-inner">
+      <div class="f-label">Total Number of Days Worked</div>
+      <div class="f-num" id="f-total">0</div>
+      <div class="f-goal" id="f-goal">Goal: 200</div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+// ── Calendar data ──────────────────────────────────────────────
+const MONTHS = [
+  { year:2026, month:6,  label:'July 2026',      holidays:[4],                           note:'July 4 – Independence Day (RESA CLOSED)' },
+  { year:2026, month:7,  label:'August 2026',     holidays:[],                            note:'' },
+  { year:2026, month:8,  label:'September 2026',  holidays:[7],                           note:'Sept 7 – Labor Day (RESA CLOSED)' },
+  { year:2026, month:9,  label:'October 2026',    holidays:[],                            note:'' },
+  { year:2026, month:10, label:'November 2026',   holidays:[26,27],                       note:'Nov 26–27 – Thanksgiving (RESA CLOSED)' },
+  { year:2026, month:11, label:'December 2026',   holidays:[21,22,23,24,25,28,29,30,31], note:'Dec 21 – Jan 1 – Winter Break (RESA CLOSED)' },
+  { year:2027, month:0,  label:'January 2027',    holidays:[1,18],                        note:'Jan 1 – New Year\'s Day · Jan 18 – MLK Jr. Day (RESA CLOSED)' },
+  { year:2027, month:1,  label:'February 2027',   holidays:[15],                          note:'Feb 15 – Presidents\' Day (RESA CLOSED)' },
+  { year:2027, month:2,  label:'March 2027',       holidays:[],                            note:'' },
+  { year:2027, month:3,  label:'April 2027',       holidays:[2],                           note:'Apr 2 – Good Friday (RESA CLOSED)' },
+  { year:2027, month:4,  label:'May 2027',         holidays:[31],                          note:'May 31 – Memorial Day (RESA CLOSED)' },
+  { year:2027, month:5,  label:'June 2027',        holidays:[],                            note:'' },
+];
+
+// ── State ──────────────────────────────────────────────────────
+let offDays    = MONTHS.map(() => new Set());
+let token      = null;
+let fileId     = null;
+let syncTimer  = null;
+
+// ── Auth ───────────────────────────────────────────────────────
+function startSignIn() {
+  if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+    document.getElementById('config-warn').style.display = 'block';
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) return;
+      token = resp.access_token;
+      await loadProfile();
+      showLoad('Loading your calendar…');
+      await loadDrive();
+      renderApp();
+      hideLoad();
+    },
+  });
+  client.requestAccessToken();
+}
+
+async function loadProfile() {
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const u = await r.json();
+    document.getElementById('u-name').textContent = u.given_name || u.name || '';
+    if (u.picture) {
+      const img = document.getElementById('u-avatar');
+      img.src = u.picture;
+      img.style.display = 'block';
+      document.getElementById('u-fallback').style.display = 'none';
+    } else {
+      document.getElementById('u-fallback').textContent = (u.name || '?')[0].toUpperCase();
+    }
+  } catch(e) {}
+}
+
+function signOut() {
+  if (token) {
+    try { google.accounts.oauth2.revoke(token, ()=>{}); } catch(e){}
+  }
+  token = null; fileId = null;
+  offDays = MONTHS.map(() => new Set());
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+}
+
+// ── Drive ──────────────────────────────────────────────────────
+async function loadDrive() {
+  const list = await driveGet(
+    'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)'
+  );
+  const existing = list.files.find(f => f.name === DRIVE_FILE_NAME);
+  if (existing) {
+    fileId = existing.id;
+    const r = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: 'Bearer ' + token } }
+    );
+    const data = await r.json();
+    if (data.offDays) {
+      data.offDays.forEach((arr, i) => { if (i < MONTHS.length) offDays[i] = new Set(arr); });
+    }
+  }
+}
+
+async function saveDrive() {
+  setSyncMsg('saving');
+  const payload = JSON.stringify({
+    version: 1,
+    schoolYear: '2026-2027',
+    savedAt: new Date().toISOString(),
+    offDays: offDays.map(s => [...s]),
+  });
+
+  if (!fileId) {
+    const meta = await drivePost(
+      'https://www.googleapis.com/drive/v3/files',
+      { name: DRIVE_FILE_NAME, parents: ['appDataFolder'] }
+    );
+    fileId = meta.id;
+  }
+
+  await fetch(
+    `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+    {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: payload,
+    }
+  );
+  setSyncMsg('saved');
+}
+
+async function driveGet(url) {
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function drivePost(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+function scheduleSave() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => saveDrive().catch(() => setSyncMsg('error')), 1200);
+}
+
+function setSyncMsg(s) {
+  const el = document.getElementById('sync-msg');
+  el.className = 'sync-msg ' + s;
+  el.textContent = s === 'saving' ? '⟳ Saving…' : s === 'saved' ? '✓ Saved to Drive' : '⚠ Save failed';
+  if (s === 'saved') setTimeout(() => { el.textContent = ''; el.className = 'sync-msg'; }, 3000);
+}
+
+// ── Calendar logic ─────────────────────────────────────────────
+function weekdaysOf(year, month) {
+  const total = new Date(year, month + 1, 0).getDate();
+  const days = [];
+  for (let d = 1; d <= total; d++) {
+    const w = new Date(year, month, d).getDay();
+    if (w >= 1 && w <= 5) days.push(d);
+  }
+  return days;
+}
+
+function worked(idx) {
+  const { year, month } = MONTHS[idx];
+  return weekdaysOf(year, month).filter(d =>
+    !MONTHS[idx].holidays.includes(d) && !offDays[idx].has(d)
+  ).length;
+}
+
+function globalStats() {
+  let wds = 0, off = 0, wrk = 0;
+  for (let i = 0; i < MONTHS.length; i++) {
+    const days = weekdaysOf(MONTHS[i].year, MONTHS[i].month);
+    wds += days.length;
+    days.forEach(d => {
+      if (MONTHS[i].holidays.includes(d) || offDays[i].has(d)) off++;
+      else wrk++;
+    });
+  }
+  return { wds, off, wrk };
+}
+
+function buildCells(year, month) {
+  const total = new Date(year, month + 1, 0).getDate();
+  const first = new Date(year, month, 1).getDay();
+  const blanks = first === 0 ? 4 : first === 6 ? 0 : first - 1;
+  const cells = Array(blanks).fill(null);
+  for (let d = 1; d <= total; d++) {
+    const w = new Date(year, month, d).getDay();
+    if (w >= 1 && w <= 5) cells.push(d);
+  }
+  while (cells.length % 5) cells.push(null);
+  return cells;
+}
+
+// ── Render ─────────────────────────────────────────────────────
+function renderApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  const wrap = document.getElementById('cal-wrap');
+  wrap.innerHTML = '';
+  MONTHS.forEach((_, i) => wrap.appendChild(buildCard(i)));
+  updateStats();
+}
+
+function buildCard(idx) {
+  const m = MONTHS[idx];
+  const cells = buildCells(m.year, m.month);
+  const w = worked(idx);
+
+  const card = document.createElement('div');
+  card.className = 'month-card';
+
+  card.innerHTML = `
+    <div class="m-head">
+      <span class="m-name">${m.label}</span>
+      <span class="m-tally">Days: <span class="tn" id="t-${idx}">${w}</span></span>
+    </div>
+    <div class="dow-row">
+      <div class="dow-cell">Mon</div>
+      <div class="dow-cell">Tue</div>
+      <div class="dow-cell">Wed</div>
+      <div class="dow-cell">Thu</div>
+      <div class="dow-cell">Fri</div>
+    </div>
+  `;
+
+  for (let r = 0; r < cells.length; r += 5) {
+    const row = document.createElement('div');
+    row.className = 'day-row';
+    for (let c = 0; c < 5; c++) {
+      const day = cells[r + c];
+      const cell = document.createElement('div');
+      cell.className = 'day-cell';
+      if (!day) {
+        cell.classList.add('empty');
+      } else {
+        cell.textContent = day;
+        if (m.holidays.includes(day)) {
+          cell.classList.add('holiday');
+          cell.title = m.note;
+        } else {
+          if (offDays[idx].has(day)) cell.classList.add('off');
+          cell.addEventListener('click', () => toggle(idx, day, cell));
+        }
+      }
+      row.appendChild(cell);
+    }
+    card.appendChild(row);
+  }
+
+  if (m.note) {
+    const strip = document.createElement('div');
+    strip.className = 'h-strip';
+    strip.textContent = m.note;
+    card.appendChild(strip);
+  }
+
+  return card;
+}
+
+function toggle(idx, day, cell) {
+  if (offDays[idx].has(day)) {
+    offDays[idx].delete(day);
+    cell.classList.remove('off');
+  } else {
+    offDays[idx].add(day);
+    cell.classList.add('off');
+  }
+  document.getElementById(`t-${idx}`).textContent = worked(idx);
+  updateStats();
+  scheduleSave();
+}
+
+function updateStats() {
+  const { wds, off, wrk } = globalStats();
+  document.getElementById('top-total').textContent = wrk;
+  document.getElementById('f-total').textContent   = wrk;
+  document.getElementById('s-weekdays').textContent = wds;
+  document.getElementById('s-off').textContent      = off;
+  document.getElementById('s-worked').textContent   = wrk;
+  const diff = wrk - 200;
+  const sg = document.getElementById('s-goal');
+  const fg = document.getElementById('f-goal');
+  if (diff === 0) {
+    sg.textContent = '✓ 200-Day Goal Met!';
+    sg.className = 's-goal met';
+    fg.textContent = '✓ 200-Day Goal Met';
+  } else if (diff > 0) {
+    sg.textContent = `${diff} days over goal`;
+    sg.className = 's-goal over';
+    fg.textContent = `${diff} over goal`;
+  } else {
+    sg.textContent = `${Math.abs(diff)} days to reach 200`;
+    sg.className = 's-goal under';
+    fg.textContent = `Goal: 200 — ${Math.abs(diff)} to go`;
+  }
+}
+
+// ── Loading ────────────────────────────────────────────────────
+function showLoad(msg) {
+  document.getElementById('loading-msg').textContent = msg;
+  document.getElementById('loading').style.display = 'flex';
+}
+function hideLoad() {
+  document.getElementById('loading').style.display = 'none';
+}
+
+// ── Init ───────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
+    document.getElementById('config-warn').style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>
