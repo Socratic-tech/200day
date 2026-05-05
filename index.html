@@ -701,26 +701,150 @@ body {
 .wd-num { font-size: 0.9rem; font-weight: 600; }
 
 /* ── PRINT ───────────────────────────────────────────────────── */
+/* ── PRINT ONE-PAGER ─────────────────────────────────────────── */
+#print-view { display: none; }
+
 @media print {
-  #auth-screen, .btn-out, .sync-msg, .legend-row, .btn-print,
-  #loading, .skip-link, .btn-add-weekend, .weekend-picker,
-  .chip-remove { display: none !important; }
-  .weekend-section { background: white; border-top: 1px solid #ccc; }
-  body { background: white; }
-  .topbar, .m-head, .footer-inner {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
+  * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+
+  /* Hide everything except the print view */
+  body > *:not(#print-view) { display: none !important; }
+  #print-view { display: block !important; }
+
+  @page {
+    size: letter portrait;
+    margin: 0.4in 0.35in 0.4in 0.35in;
   }
-  .day-cell.off, .day-cell.holiday {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
+
+  /* ── Print view shell ── */
+  #print-view {
+    font-family: Arial, sans-serif;
+    font-size: 7.5pt;
+    color: #000;
+    width: 100%;
   }
-  .month-card { break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
-  .topbar { position: static; }
-  .cal-wrap { gap: 10px; margin-top: 10px; }
-  /* Show text labels in print instead of color alone */
-  .day-cell.off::before    { content: '[Off] '; font-size: 0.6rem; }
-  .day-cell.holiday::before { content: '[Closed] '; font-size: 0.6rem; }
+
+  /* Logo / header */
+  .pv-header {
+    text-align: center;
+    margin-bottom: 6pt;
+  }
+  .pv-logo {
+    font-size: 11pt;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #1a4fc4;
+    line-height: 1.1;
+  }
+  .pv-logo span { display: block; font-size: 7pt; font-weight: normal; letter-spacing: 0.3em; color: #444; }
+  .pv-title {
+    font-size: 14pt;
+    font-weight: bold;
+    margin: 4pt 0 2pt;
+    color: #000;
+  }
+  .pv-name-line {
+    font-size: 9pt;
+    margin-bottom: 4pt;
+    text-align: left;
+  }
+  .pv-name-line span {
+    display: inline-block;
+    min-width: 200pt;
+    border-bottom: 1pt solid #000;
+    margin-left: 4pt;
+  }
+
+  /* ── Month pair rows ── */
+  .pv-row {
+    display: grid;
+    grid-template-columns: 115pt 1fr 6pt 1fr 115pt;
+    gap: 0;
+    margin-bottom: 5pt;
+    align-items: start;
+  }
+
+  /* Left/right note columns */
+  .pv-note {
+    font-size: 6.5pt;
+    color: #000;
+    padding: 0 5pt;
+    line-height: 1.35;
+  }
+  .pv-note .pv-days {
+    font-size: 7pt;
+    margin-bottom: 2pt;
+  }
+  .pv-note .pv-days strong { font-size: 9pt; }
+  .pv-note .pv-note-text { font-style: italic; }
+  .pv-note-right { text-align: right; }
+  .pv-spacer { width: 6pt; }
+
+  /* ── Individual mini calendar ── */
+  .pv-cal {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  /* Month header row */
+  .pv-cal .pv-month-hdr {
+    background: #1a4fc4 !important;
+    color: #fff !important;
+    text-align: center;
+    font-size: 7.5pt;
+    font-weight: bold;
+    padding: 2pt 0;
+    letter-spacing: 0.04em;
+  }
+
+  /* DOW header */
+  .pv-cal .pv-dow td {
+    text-align: center;
+    font-size: 6pt;
+    font-weight: bold;
+    padding: 1pt 0;
+    border-bottom: 0.5pt solid #999;
+    color: #333;
+  }
+
+  /* Day cells */
+  .pv-cal td.pv-day {
+    text-align: center;
+    font-size: 7pt;
+    padding: 1.5pt 0;
+    border: 0.25pt solid #ddd;
+    width: 14.28%;
+  }
+  .pv-cal td.pv-empty { border: none; background: white !important; }
+
+  /* Cell states */
+  .pv-cal td.pv-holiday { background: #000 !important; color: #fff !important; font-weight: bold; }
+  .pv-cal td.pv-off     { background: #000 !important; color: #fff !important; font-weight: bold; }
+  .pv-cal td.pv-half    { background: #555 !important; color: #fff !important; font-weight: bold; }
+  .pv-cal td.pv-noted   { background: #4caf50 !important; color: #fff !important; }
+  .pv-cal td.pv-weekend-work { background: #1a4fc4 !important; color: #fff !important; font-weight: bold; }
+
+  /* ── Footer total bar ── */
+  .pv-footer {
+    background: #1a1a1a !important;
+    color: #fff !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4pt 12pt;
+    margin-top: 4pt;
+    font-size: 9pt;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .pv-footer .pv-total-num {
+    font-size: 16pt;
+    font-weight: bold;
+    font-family: Arial, sans-serif;
+  }
 }
 
 /* ── RESPONSIVE ──────────────────────────────────────────────── */
@@ -1611,6 +1735,184 @@ window.addEventListener('load', () => {
     document.getElementById('config-warn').style.display = 'block';
   }
 });
+</script>
+<div id="print-view" aria-hidden="true"></div>
+
+<script>
+// ── Build print-view DOM ───────────────────────────────────────
+// Called after renderApp so state is populated.
+function buildPrintView() {
+  var pv = document.getElementById('print-view');
+  pv.innerHTML = '';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.className = 'pv-header';
+  hdr.innerHTML =
+    '<div class="pv-logo">Berrien<span>RESA</span></div>' +
+    '<div class="pv-title">2026-2027 School Year Calendar</div>';
+  pv.appendChild(hdr);
+
+  // Name line
+  var nameLine = document.createElement('div');
+  nameLine.className = 'pv-name-line';
+  var nameVal = document.getElementById('u-name') ? document.getElementById('u-name').textContent : '';
+  nameLine.innerHTML = 'Name: <span>' + nameVal + '</span>';
+  pv.appendChild(nameLine);
+
+  // Month pairs (2 per row)
+  var pairs = [
+    [0,1],[2,3],[4,5],[6,7],[8,9],[10,11]
+  ];
+
+  pairs.forEach(function(pair) {
+    var row = document.createElement('div');
+    row.className = 'pv-row';
+
+    var leftIdx  = pair[0];
+    var rightIdx = pair[1];
+
+    // Left note column
+    row.appendChild(buildNoteCol(leftIdx, 'left'));
+    // Left calendar
+    row.appendChild(buildPrintCal(leftIdx));
+    // Spacer
+    var sp = document.createElement('div');
+    sp.className = 'pv-spacer';
+    row.appendChild(sp);
+    // Right calendar
+    row.appendChild(buildPrintCal(rightIdx));
+    // Right note column
+    row.appendChild(buildNoteCol(rightIdx, 'right'));
+
+    pv.appendChild(row);
+  });
+
+  // Footer
+  var { wrk } = globalStats();
+  var wrkFmt = wrk % 1 === 0 ? wrk : wrk.toFixed(1);
+  var footer = document.createElement('div');
+  footer.className = 'pv-footer';
+  footer.innerHTML =
+    '<span>Total Number of Days Worked Is ...</span>' +
+    '<span class="pv-total-num">' + wrkFmt + '</span>';
+  pv.appendChild(footer);
+}
+
+function buildNoteCol(idx, side) {
+  var m = MONTHS[idx];
+  var w = countWorked(idx);
+  var wFmt = w % 1 === 0 ? w : w.toFixed(1);
+
+  var div = document.createElement('div');
+  div.className = 'pv-note' + (side === 'right' ? ' pv-note-right' : '');
+
+  // Day count
+  var daysDiv = document.createElement('div');
+  daysDiv.className = 'pv-days';
+  daysDiv.innerHTML = 'Number of Days = <strong>' + wFmt + '</strong>';
+  div.appendChild(daysDiv);
+
+  // Holiday note text
+  if (m.note) {
+    var noteDiv = document.createElement('div');
+    noteDiv.className = 'pv-note-text';
+    noteDiv.textContent = m.note;
+    div.appendChild(noteDiv);
+  }
+
+  // Weekend work days note
+  if (weekendDays[idx] && weekendDays[idx].size > 0) {
+    var wkndDiv = document.createElement('div');
+    wkndDiv.className = 'pv-note-text';
+    var wkndDays = [...weekendDays[idx]].sort(function(a,b){return a-b;});
+    wkndDiv.textContent = 'Weekend work days: ' + wkndDays.map(function(d) {
+      var dow = new Date(m.year, m.month, d).getDay();
+      return (dow === 6 ? 'Sat' : 'Sun') + ' ' + d;
+    }).join(', ');
+    div.appendChild(wkndDiv);
+  }
+
+  return div;
+}
+
+function buildPrintCal(idx) {
+  var m = MONTHS[idx];
+  var table = document.createElement('table');
+  table.className = 'pv-cal';
+
+  // Month header spanning 5 cols
+  var thead = document.createElement('thead');
+  var hdrRow = document.createElement('tr');
+  var hdrCell = document.createElement('td');
+  hdrCell.setAttribute('colspan', '5');
+  hdrCell.className = 'pv-month-hdr';
+  hdrCell.textContent = m.label;
+  hdrRow.appendChild(hdrCell);
+  thead.appendChild(hdrRow);
+
+  // DOW row
+  var dowRow = document.createElement('tr');
+  dowRow.className = 'pv-dow';
+  ['M','T','W','T','F'].forEach(function(d) {
+    var td = document.createElement('td');
+    td.textContent = d;
+    dowRow.appendChild(td);
+  });
+  thead.appendChild(dowRow);
+  table.appendChild(thead);
+
+  // Build cells
+  var total = new Date(m.year, m.month+1, 0).getDate();
+  var firstDow = new Date(m.year, m.month, 1).getDay();
+  var blanks = firstDow === 0 ? 4 : firstDow === 6 ? 0 : firstDow - 1;
+  var cells = [];
+  for (var i = 0; i < blanks; i++) cells.push(null);
+  for (var d = 1; d <= total; d++) {
+    var w = new Date(m.year, m.month, d).getDay();
+    if (w >= 1 && w <= 5) cells.push(d);
+  }
+  while (cells.length % 5) cells.push(null);
+
+  // Also collect weekend work days as extras after the grid
+  var wkndList = weekendDays[idx] ? [...weekendDays[idx]].sort(function(a,b){return a-b;}) : [];
+
+  var tbody = document.createElement('tbody');
+  for (var r = 0; r < cells.length; r += 5) {
+    var tr = document.createElement('tr');
+    for (var c = 0; c < 5; c++) {
+      var day = cells[r + c];
+      var td = document.createElement('td');
+      if (!day) {
+        td.className = 'pv-empty';
+        td.innerHTML = '&nbsp;';
+      } else {
+        td.className = 'pv-day';
+        td.textContent = day;
+        if (m.holidays.includes(day)) {
+          td.className += ' pv-holiday';
+        } else if (offDays[idx].has(day)) {
+          td.className += ' pv-off';
+        } else if (halfDays[idx].has(day)) {
+          td.className += ' pv-half';
+        } else if ((m.notes || []).includes(day)) {
+          td.className += ' pv-noted';
+        }
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  return table;
+}
+
+// Hook into window.print to build the view first
+var _origPrint = window.print.bind(window);
+window.print = function() {
+  buildPrintView();
+  setTimeout(function() { _origPrint(); }, 100);
+};
 </script>
 </body>
 </html>
