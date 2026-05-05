@@ -11,22 +11,23 @@
   ════════════════════════════════════════════════════════════════
   1. Go to https://console.cloud.google.com/
   2. Create or select a project
-  3. APIs & Services → Library → Enable "Google Drive API"
+  3. APIs & Services → Library → Enable:
+       • "Google Drive API"
+       • "Google Calendar API"
   4. APIs & Services → Credentials → + Create Credentials
        → OAuth 2.0 Client ID
        → Application type: Web application
        → Authorized JavaScript origins: your hosting URL
-         (e.g. https://yourschool.github.io  or  http://localhost)
+         (e.g. https://yourschool.github.io)
   5. Copy the Client ID, paste it below replacing YOUR_CLIENT_ID_HERE
-  6. Host this single .html file anywhere (GitHub Pages, Google Sites,
-     a shared network drive opened in a browser, etc.)
+  6. Host this single .html file anywhere (GitHub Pages, etc.)
   ════════════════════════════════════════════════════════════════
 -->
 
 <script>
   const GOOGLE_CLIENT_ID = '957994886927-dbdog40ac76ae53b9v9kvhl23ua5goh7.apps.googleusercontent.com';
   const DRIVE_FILE_NAME  = 'school-calendar-2026-2027.json';
-  const SCOPES           = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.profile';
+  const SCOPES           = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/calendar.events';
 </script>
 
 <style>
@@ -590,9 +591,12 @@ const MONTHS = [
 
 // ── State ──────────────────────────────────────────────────────
 let offDays    = MONTHS.map(() => new Set());
+let gcalIds    = {}; // key: "monthIdx-day" → Google Calendar event id
 let token      = null;
 let fileId     = null;
 let syncTimer  = null;
+const EVENT_TITLE = 'Non-Contract Day';
+const CAL_ID      = 'primary';
 
 // ── Auth ───────────────────────────────────────────────────────
 let pendingProfile = null;
@@ -614,7 +618,6 @@ function startSignIn() {
       showLoad('Loading your calendar…');
       await loadDrive();
       renderApp();
-      hideLoad();
     },
   });
   // prompt:'select_account' avoids the storagerelay redirect issue
@@ -669,6 +672,7 @@ async function loadDrive() {
     if (data.offDays) {
       data.offDays.forEach((arr, i) => { if (i < MONTHS.length) offDays[i] = new Set(arr); });
     }
+    if (data.gcalIds) gcalIds = data.gcalIds;
   }
 }
 
@@ -679,6 +683,7 @@ async function saveDrive() {
     schoolYear: '2026-2027',
     savedAt: new Date().toISOString(),
     offDays: offDays.map(s => [...s]),
+    gcalIds,
   });
 
   if (!fileId) {
@@ -713,6 +718,59 @@ async function drivePost(url, body) {
   });
   if (!r.ok) throw new Error(r.status);
   return r.json();
+}
+
+// ── Google Calendar API ────────────────────────────────────────
+function dateStr(year, month, day) {
+  // Returns YYYY-MM-DD for an all-day event
+  const mm = String(month + 1).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
+  return `${year}-${mm}-${dd}`;
+}
+
+async function gcalCreate(year, month, day) {
+  const date = dateStr(year, month, day);
+  try {
+    const r = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events`,
+      {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          summary: EVENT_TITLE,
+          start: { date },
+          end:   { date },
+          transparency: 'transparent', // shows as free, not blocking
+        }),
+      }
+    );
+    if (!r.ok) return null;
+    const ev = await r.json();
+    return ev.id;
+  } catch(e) { return null; }
+}
+
+async function gcalDelete(eventId) {
+  try {
+    await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(CAL_ID)}/events/${eventId}`,
+      { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } }
+    );
+  } catch(e) {}
+}
+
+// Sync all holidays to Google Calendar on first load (if not already there)
+async function syncHolidaysToGcal() {
+  for (let i = 0; i < MONTHS.length; i++) {
+    const m = MONTHS[i];
+    for (const day of m.holidays) {
+      const key = `h-${i}-${day}`;
+      if (!gcalIds[key]) {
+        const id = await gcalCreate(m.year, m.month, day);
+        if (id) gcalIds[key] = id;
+      }
+    }
+  }
 }
 
 function scheduleSave() {
@@ -779,6 +837,12 @@ function renderApp() {
   wrap.innerHTML = '';
   MONTHS.forEach((_, i) => wrap.appendChild(buildCard(i)));
   updateStats();
+  // Sync holidays to Google Calendar in background (non-blocking)
+  showLoad('Syncing holidays to Google Calendar…');
+  syncHolidaysToGcal()
+    .then(() => saveDrive())
+    .catch(e => console.warn('Holiday sync failed:', e))
+    .finally(() => hideLoad());
 }
 
 function buildCard(idx) {
@@ -837,13 +901,23 @@ function buildCard(idx) {
   return card;
 }
 
-function toggle(idx, day, cell) {
+async function toggle(idx, day, cell) {
+  const m = MONTHS[idx];
+  const key = `u-${idx}-${day}`;
   if (offDays[idx].has(day)) {
     offDays[idx].delete(day);
     cell.classList.remove('off');
+    // Delete from Google Calendar
+    if (gcalIds[key]) {
+      await gcalDelete(gcalIds[key]);
+      delete gcalIds[key];
+    }
   } else {
     offDays[idx].add(day);
     cell.classList.add('off');
+    // Create in Google Calendar
+    const id = await gcalCreate(m.year, m.month, day);
+    if (id) gcalIds[key] = id;
   }
   document.getElementById(`t-${idx}`).textContent = worked(idx);
   updateStats();
