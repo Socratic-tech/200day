@@ -932,24 +932,55 @@ let fileId    = null;
 let syncTimer = null;
 
 // ── Auth ───────────────────────────────────────────────────────
+// Shared token client — created once, reused for silent refresh and explicit sign-in
+let _tokenClient = null;
+
+function getTokenClient(onSuccess) {
+  _tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) {
+        // Silent refresh failed — fall back to showing account picker
+        if (resp.error === 'interaction_required' || resp.error === 'user_cancelled') {
+          _tokenClient.requestAccessToken({ prompt: 'select_account' });
+        } else {
+          console.error('OAuth error:', resp);
+          hideLoad();
+        }
+        return;
+      }
+      token = resp.access_token;
+      // Schedule silent refresh 5 min before token expires (tokens last 1hr)
+      setTimeout(silentRefresh, 55 * 60 * 1000);
+      await onSuccess();
+    },
+  });
+  return _tokenClient;
+}
+
+async function silentRefresh() {
+  if (!_tokenClient) return;
+  // prompt:'' = no UI shown; fails silently if consent needed
+  _tokenClient.requestAccessToken({ prompt: '' });
+}
+
 function startSignIn() {
   if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
     document.getElementById('config-warn').style.display = 'block';
     return;
   }
-  const client = google.accounts.oauth2.initTokenClient({
-    client_id: GOOGLE_CLIENT_ID,
-    scope: SCOPES,
-    callback: async (resp) => {
-      if (resp.error) { console.error(resp); return; }
-      token = resp.access_token;
-      await loadProfile();
-      showLoad('Loading your calendar…');
-      await loadDrive();
-      renderApp();
-    },
+
+  const client = getTokenClient(async () => {
+    await loadProfile();
+    showLoad('Loading your calendar…');
+    await loadDrive();
+    renderApp();
   });
-  client.requestAccessToken({ prompt: 'select_account' });
+
+  // Try silently first (no UI) — works if user already granted permission.
+  // If it fails, the callback above will retry with prompt:'select_account'.
+  client.requestAccessToken({ prompt: '' });
 }
 
 function applyProfile(u) {
