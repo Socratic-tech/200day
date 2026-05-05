@@ -595,16 +595,20 @@ let fileId     = null;
 let syncTimer  = null;
 
 // ── Auth ───────────────────────────────────────────────────────
+let pendingProfile = null;
+
 function startSignIn() {
   if (GOOGLE_CLIENT_ID === 'YOUR_CLIENT_ID_HERE') {
     document.getElementById('config-warn').style.display = 'block';
     return;
   }
+  // Use token client directly with drive scope only — no userinfo scope
+  // This avoids the storagerelay redirect_uri issue
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_CLIENT_ID,
     scope: SCOPES,
     callback: async (resp) => {
-      if (resp.error) return;
+      if (resp.error) { console.error(resp); return; }
       token = resp.access_token;
       await loadProfile();
       showLoad('Loading your calendar…');
@@ -613,7 +617,20 @@ function startSignIn() {
       hideLoad();
     },
   });
-  client.requestAccessToken();
+  // prompt:'select_account' avoids the storagerelay redirect issue
+  client.requestAccessToken({ prompt: 'select_account' });
+}
+
+function applyProfile(u) {
+  document.getElementById('u-name').textContent = u.given_name || u.name || '';
+  if (u.picture) {
+    const img = document.getElementById('u-avatar');
+    img.src = u.picture;
+    img.style.display = 'block';
+    document.getElementById('u-fallback').style.display = 'none';
+  } else {
+    document.getElementById('u-fallback').textContent = (u.name || '?')[0].toUpperCase();
+  }
 }
 
 async function loadProfile() {
@@ -622,15 +639,7 @@ async function loadProfile() {
       headers: { Authorization: 'Bearer ' + token }
     });
     const u = await r.json();
-    document.getElementById('u-name').textContent = u.given_name || u.name || '';
-    if (u.picture) {
-      const img = document.getElementById('u-avatar');
-      img.src = u.picture;
-      img.style.display = 'block';
-      document.getElementById('u-fallback').style.display = 'none';
-    } else {
-      document.getElementById('u-fallback').textContent = (u.name || '?')[0].toUpperCase();
-    }
+    applyProfile(u);
   } catch(e) {}
 }
 
