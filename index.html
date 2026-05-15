@@ -11,26 +11,26 @@
   ════════════════════════════════════════════════════════════════
   1. Go to https://console.cloud.google.com/
   2. Create or select a project
-  3. APIs & Services → Library → Enable:
-       • "Google Calendar API"  (Drive API NOT needed)
+  3. APIs & Services → Library → Enable "Google Calendar API"
   4. APIs & Services → Credentials → + Create Credentials
        → OAuth 2.0 Client ID → Web application
        → Authorized JavaScript origins: https://yourdomain.github.io
-  5. OAuth consent screen → Scopes → Add:
-       • calendar.events  (only scope needed)
+  5. OAuth consent screen → Scopes → Add: calendar.events
   6. Paste your Client ID below, host the file, share the URL
   ════════════════════════════════════════════════════════════════
 -->
 
 <script>
   const GOOGLE_CLIENT_ID = '957994886927-dbdog40ac76ae53b9v9kvhl23ua5goh7.apps.googleusercontent.com';
-  const SCOPES       = 'https://www.googleapis.com/auth/calendar.events';
+  const SCOPES         = 'https://www.googleapis.com/auth/calendar.events';
   const EVENT_TITLE    = 'Non-Contract Day';
   const HOLIDAY_TITLE  = 'Holiday';
   const HALF_TITLE     = 'Half Day – Non-Contract';
   const WEEKEND_TITLE  = 'Contract Day';
-  const CAL_ID       = 'primary';
-  const STATE_MARKER = '__RESA_CAL_STATE_2627__';
+  const HOL_WORKED_TITLE = 'Holiday – Worked';
+  const HOL_HALF_TITLE   = 'Holiday – Half Day Worked';
+  const CAL_ID         = 'primary';
+  const STATE_MARKER   = '__RESA_CAL_STATE_2627__';
 </script>
 
 <style>
@@ -42,26 +42,26 @@
   --blue:        #1a4fc4;
   --blue-mid:    #2563eb;
   --blue-soft:   #dbeafe;
-  --red:         #b91c1c;   /* darkened for 4.5:1 contrast on white */
+  --red:         #b91c1c;
   --red-soft:    #fee2e2;
-  --green:       #15803d;   /* darkened for contrast */
+  --green:       #15803d;
   --green-soft:  #dcfce7;
-  --amber:       #92400e;   /* darkened for contrast */
+  --amber:       #92400e;
   --amber-soft:  #fef3c7;
+  --purple:      #6b21a8;
+  --purple-soft: #f3e8ff;
   --surface:     #ffffff;
   --bg:          #f0f4fc;
-  --border:      #c8d3e8;   /* darkened for visibility */
+  --border:      #c8d3e8;
   --text:        #0f172a;
-  --muted:       #475569;   /* darkened from #64748b for 4.5:1 on white */
+  --muted:       #475569;
   --radius:      12px;
   --shadow:      0 4px 24px rgba(13,33,82,0.10);
   --focus:       #f59e0b;
 }
 
-/* ── Reset ───────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Reduced motion ──────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -69,31 +69,21 @@
   }
 }
 
-/* ── Skip link (keyboard / screen reader navigation) ────────── */
 .skip-link {
-  position: absolute;
-  top: -120px;
-  left: 12px;
-  background: var(--navy);
-  color: #fff;
-  padding: 10px 18px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  z-index: 9999;
-  border-radius: 0 0 8px 8px;
-  text-decoration: underline;
-  transition: top 0.15s;
+  position: absolute; top: -120px; left: 12px;
+  background: var(--navy); color: #fff;
+  padding: 10px 18px; font-size: 0.95rem; font-weight: 600;
+  z-index: 9999; border-radius: 0 0 8px 8px;
+  text-decoration: underline; transition: top 0.15s;
 }
 .skip-link:focus { top: 0; }
 
-/* ── Global focus style ──────────────────────────────────────── */
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
   border-radius: 3px;
 }
 
-/* ── Base ────────────────────────────────────────────────────── */
 body {
   font-family: 'Outfit', sans-serif;
   background: var(--bg);
@@ -107,10 +97,7 @@ body {
 /* ── AUTH SCREEN ─────────────────────────────────────────────── */
 #auth-screen {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 24px;
   background: linear-gradient(140deg, var(--navy) 0%, #1e3a8a 100%);
   padding: 40px 20px;
@@ -118,285 +105,130 @@ body {
 #auth-screen h1 {
   font-family: 'Playfair Display', serif;
   font-size: clamp(2rem, 5vw, 3rem);
-  color: #ffffff;
-  text-align: center;
-  line-height: 1.2;
+  color: #ffffff; text-align: center; line-height: 1.2;
 }
-#auth-screen > p {
-  color: #e2e8f0; /* 4.6:1 contrast on navy */
-  font-size: 1rem;
-  text-align: center;
-  max-width: 380px;
-  line-height: 1.6;
-}
+#auth-screen > p { color: #e2e8f0; font-size: 1rem; text-align: center; max-width: 380px; line-height: 1.6; }
 .auth-card {
-  background: white;
-  border-radius: 20px;
-  padding: 36px 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 18px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.28);
-  max-width: 360px;
-  width: 100%;
+  background: white; border-radius: 20px; padding: 36px 40px;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.28); max-width: 360px; width: 100%;
 }
 .badge-pill {
-  background: var(--blue-soft);
-  color: #1e40af; /* 4.6:1 on blue-soft */
-  font-weight: 700;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  padding: 4px 14px;
-  border-radius: 20px;
-  text-transform: uppercase;
+  background: var(--blue-soft); color: #1e40af;
+  font-weight: 700; font-size: 0.75rem; letter-spacing: 0.1em;
+  padding: 4px 14px; border-radius: 20px; text-transform: uppercase;
 }
-.auth-card h2 {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.35rem;
-  color: var(--navy);
-  text-align: center;
-}
-.auth-card p {
-  font-size: 0.875rem;
-  color: var(--muted);
-  text-align: center;
-  line-height: 1.55;
-}
+.auth-card h2 { font-family: 'Playfair Display', serif; font-size: 1.35rem; color: var(--navy); text-align: center; }
+.auth-card p { font-size: 0.875rem; color: var(--muted); text-align: center; line-height: 1.55; }
 #sign-in-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--navy);
-  color: #ffffff;
-  border: 2px solid transparent;
-  border-radius: 10px;
-  padding: 13px 24px;
-  font-size: 0.95rem;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-  justify-content: center;
-  transition: background 0.18s;
-  min-height: 44px; /* WCAG 2.5.5 touch target */
+  display: flex; align-items: center; gap: 10px;
+  background: var(--navy); color: #ffffff;
+  border: 2px solid transparent; border-radius: 10px;
+  padding: 13px 24px; font-size: 0.95rem;
+  font-family: 'Outfit', sans-serif; font-weight: 600;
+  cursor: pointer; width: 100%; justify-content: center;
+  transition: background 0.18s; min-height: 44px;
 }
 #sign-in-btn:hover { background: var(--blue-mid); }
-#sign-in-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .config-warn {
-  background: #fff3cd;
-  border: 1px solid #d97706;
-  color: #78350f; /* 7:1 on yellow */
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.875rem;
-  line-height: 1.55;
-  text-align: center;
-  display: none;
-  width: 100%;
-  role: alert;
+  background: #fff3cd; border: 1px solid #d97706; color: #78350f;
+  border-radius: 8px; padding: 10px 14px; font-size: 0.875rem;
+  line-height: 1.55; text-align: center; display: none; width: 100%;
 }
-.auth-fine {
-  font-size: 0.8rem;
-  color: #64748b;
-  margin-top: -6px;
-  text-align: center;
-}
+.auth-fine { font-size: 0.8rem; color: #64748b; margin-top: -6px; text-align: center; }
 
 /* ── APP ─────────────────────────────────────────────────────── */
 #app-screen { display: none; }
 
 /* ── TOPBAR ──────────────────────────────────────────────────── */
 .topbar {
-  background: var(--navy);
-  color: #ffffff;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 58px;
-  position: sticky;
-  top: 0;
-  z-index: 200;
+  background: var(--navy); color: #ffffff;
+  padding: 0 24px; display: flex; align-items: center; gap: 14px;
+  height: 58px; position: sticky; top: 0; z-index: 200;
   box-shadow: 0 2px 20px rgba(13,33,82,0.35);
 }
-.topbar-title {
-  font-family: 'Playfair Display', serif;
-  font-size: 1.05rem;
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.2;
-}
-.topbar-title small {
-  display: block;
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.7rem;
-  color: #cbd5e1; /* 4.6:1 on navy */
-  font-weight: 400;
-  letter-spacing: 0.06em;
-}
+.topbar-title { font-family: 'Playfair Display', serif; font-size: 1.05rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+.topbar-title small { display: block; font-family: 'Outfit', sans-serif; font-size: 0.7rem; color: #cbd5e1; font-weight: 400; letter-spacing: 0.06em; }
 .days-pill {
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 24px;
-  padding: 4px 14px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  white-space: nowrap;
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  color: #ffffff;
+  background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 24px; padding: 4px 14px; font-size: 0.85rem; font-weight: 600;
+  white-space: nowrap; display: flex; align-items: baseline; gap: 4px; color: #ffffff;
 }
 .days-pill .dn { font-size: 1.1rem; font-weight: 700; }
-.sync-msg {
-  font-size: 0.75rem;
-  white-space: nowrap;
-  min-width: 90px;
-  text-align: right;
-  color: #ffffff;
-  opacity: 0.8;
-  transition: color 0.3s;
-}
+.sync-msg { font-size: 0.75rem; white-space: nowrap; min-width: 90px; text-align: right; color: #ffffff; opacity: 0.8; transition: color 0.3s; }
 .sync-msg.saving { color: #fde68a; opacity: 1; }
 .sync-msg.saved  { color: #bbf7d0; opacity: 1; }
 .sync-msg.error  { color: #fca5a5; opacity: 1; }
-.user-chip {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 0.82rem;
-  color: #e2e8f0;
-}
-.u-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.35);
-  object-fit: cover;
-  display: none;
-}
-.u-fallback {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--blue-mid);
-  border: 2px solid rgba(255,255,255,0.35);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.72rem; font-weight: 700; color: #fff;
-  aria-hidden: true;
-}
+.user-chip { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; color: #e2e8f0; }
+.u-avatar { width: 28px; height: 28px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.35); object-fit: cover; display: none; }
+.u-fallback { width: 28px; height: 28px; border-radius: 50%; background: var(--blue-mid); border: 2px solid rgba(255,255,255,0.35); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; color: #fff; }
 .btn-out {
-  background: transparent;
-  border: 1px solid rgba(255,255,255,0.4);
-  color: #ffffff;
-  border-radius: 7px;
-  padding: 6px 14px;
-  font-size: 0.8rem;
-  font-family: 'Outfit', sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.18s;
-  min-height: 36px;
+  background: transparent; border: 1px solid rgba(255,255,255,0.4);
+  color: #ffffff; border-radius: 7px; padding: 6px 14px;
+  font-size: 0.8rem; font-family: 'Outfit', sans-serif;
+  cursor: pointer; white-space: nowrap; transition: background 0.18s; min-height: 36px;
 }
 .btn-out:hover { background: rgba(255,255,255,0.15); }
 
 /* ── SUMMARY STRIP ───────────────────────────────────────────── */
 .summary {
-  background: white;
-  border-bottom: 1px solid var(--border);
-  padding: 10px 24px;
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  align-items: center;
-  font-size: 0.82rem;
-  color: var(--muted);
+  background: white; border-bottom: 1px solid var(--border);
+  padding: 10px 24px; display: flex; gap: 20px; flex-wrap: wrap;
+  align-items: center; font-size: 0.82rem; color: var(--muted);
 }
-.s-stat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-/* Shape + color indicators (not color alone) */
-.stat-icon {
-  width: 14px; height: 14px;
-  border-radius: 3px;
-  flex-shrink: 0;
-  border: 1px solid rgba(0,0,0,0.15);
-}
-.si-blue  { background: var(--blue-mid); }
-.si-red   { background: var(--red); }
-.si-green { background: var(--green); }
-.s-goal   { margin-left: auto; font-weight: 700; font-size: 0.85rem; }
+.s-stat { display: flex; align-items: center; gap: 8px; }
+.stat-icon { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.15); }
+.si-blue   { background: var(--blue-mid); }
+.si-red    { background: var(--red); }
+.si-green  { background: var(--green); }
+.si-purple { background: var(--purple); }
+.s-goal { margin-left: auto; font-weight: 700; font-size: 0.85rem; }
 .s-goal.met   { color: var(--green); }
 .s-goal.over  { color: var(--amber); }
 .s-goal.under { color: var(--muted); }
 
 /* ── LEGEND ROW ──────────────────────────────────────────────── */
 .legend-row {
-  max-width: 1140px;
-  margin: 20px auto 0;
-  padding: 0 20px;
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: 0.78rem;
-  color: var(--muted);
+  max-width: 1140px; margin: 20px auto 0; padding: 0 20px;
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+  font-size: 0.78rem; color: var(--muted);
 }
 .leg { display: flex; align-items: center; gap: 8px; }
-/* Legend swatches use both shape and pattern, not color alone */
 .sw {
-  width: 18px; height: 18px;
-  border-radius: 4px;
+  width: 18px; height: 18px; border-radius: 4px;
   border: 2px solid rgba(0,0,0,0.15);
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.6rem; font-weight: 700;
-  flex-shrink: 0;
+  font-size: 0.6rem; font-weight: 700; flex-shrink: 0;
 }
-.sw-h { background: var(--amber-soft); color: var(--amber); }
-.sw-o { background: var(--red-soft);   color: var(--red); }
+.sw-h    { background: var(--amber-soft); color: var(--amber); }
+.sw-hw   { background: var(--purple-soft); color: var(--purple); border-color: var(--purple); }
+.sw-o    { background: var(--red-soft); color: var(--red); }
 .sw-half { background: #eff6ff; color: #1d4ed8; border-color: #93c5fd; }
 .sw-note { background: white; color: var(--muted); border-bottom: 2px solid #d97706; }
 .leg-hint { font-style: italic; }
 .btn-print {
-  margin-left: auto;
-  background: var(--navy);
-  color: #ffffff;
-  border: none;
-  border-radius: 7px;
-  padding: 7px 18px;
-  font-size: 0.8rem;
-  font-family: 'Outfit', sans-serif;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.18s;
-  min-height: 36px;
+  margin-left: auto; background: var(--navy); color: #ffffff;
+  border: none; border-radius: 7px; padding: 7px 18px;
+  font-size: 0.8rem; font-family: 'Outfit', sans-serif;
+  cursor: pointer; white-space: nowrap; transition: background 0.18s; min-height: 36px;
 }
 .btn-print:hover { background: var(--blue-mid); }
 
 /* ── CALENDAR GRID ───────────────────────────────────────────── */
 .cal-wrap {
-  max-width: 1140px;
-  margin: 16px auto;
+  max-width: 1140px; margin: 16px auto;
   padding: 0 20px 50px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 18px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;
 }
 
 /* ── MONTH CARD ──────────────────────────────────────────────── */
 .month-card {
-  background: var(--surface);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow);
+  background: var(--surface); border-radius: var(--radius);
+  overflow: hidden; box-shadow: var(--shadow);
   border: 1px solid var(--border);
   animation: fadeUp 0.4s ease both;
 }
-@keyframes fadeUp {
-  from { opacity:0; transform:translateY(10px); }
-  to   { opacity:1; transform:translateY(0); }
-}
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 .month-card:nth-child(1)  { animation-delay:.03s }
 .month-card:nth-child(2)  { animation-delay:.06s }
 .month-card:nth-child(3)  { animation-delay:.09s }
@@ -411,442 +243,208 @@ body {
 .month-card:nth-child(12) { animation-delay:.36s }
 
 .m-head {
-  background: var(--navy);
-  color: #ffffff;
-  padding: 10px 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  background: var(--navy); color: #ffffff;
+  padding: 10px 15px; display: flex; justify-content: space-between; align-items: center;
 }
-.m-name {
-  font-family: 'Playfair Display', serif;
-  font-size: 1rem;
-}
+.m-name { font-family: 'Playfair Display', serif; font-size: 1rem; }
 .m-tally {
-  background: rgba(255,255,255,0.18);
-  border-radius: 20px;
-  padding: 2px 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #ffffff;
+  background: rgba(255,255,255,0.18); border-radius: 20px;
+  padding: 2px 12px; font-size: 0.75rem; font-weight: 600; color: #ffffff;
 }
 .m-tally .tn { font-size: 0.92rem; }
 
 .dow-row {
-  display: grid;
-  grid-template-columns: repeat(5,1fr);
-  background: #f8faff;
-  border-bottom: 1px solid var(--border);
+  display: grid; grid-template-columns: repeat(5,1fr);
+  background: #f8faff; border-bottom: 1px solid var(--border);
 }
 .dow-cell {
-  text-align: center;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-  padding: 5px 0;
-  text-transform: uppercase;
+  text-align: center; font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.06em; color: var(--muted); padding: 5px 0; text-transform: uppercase;
 }
 
 .day-row { display: grid; grid-template-columns: repeat(5,1fr); }
 
-/* Day cells are <button> elements for keyboard + screen reader access */
 .day-cell {
-  text-align: center;
-  padding: 0;
-  font-size: 0.88rem;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 400;
-  border: none;
-  border-right: 1px solid #e8edf8;
-  border-bottom: 1px solid #e8edf8;
-  background: transparent;
-  color: var(--text);
-  cursor: pointer;
-  position: relative;
-  min-height: 40px;
-  min-width: 0;
-  width: 100%;
+  text-align: center; padding: 0;
+  font-size: 0.88rem; font-family: 'Outfit', sans-serif; font-weight: 400;
+  border: none; border-right: 1px solid #e8edf8; border-bottom: 1px solid #e8edf8;
+  background: transparent; color: var(--text);
+  cursor: pointer; position: relative;
+  min-height: 40px; min-width: 0; width: 100%;
   transition: background 0.12s, color 0.12s;
-  /* Remove default button styling */
-  -webkit-appearance: none;
-  appearance: none;
+  -webkit-appearance: none; appearance: none;
 }
 .day-cell:nth-child(5n) { border-right: none; }
 
-/* Empty placeholder — not interactive */
 .day-cell.empty {
-  cursor: default;
-  background: transparent;
-  pointer-events: none;
+  cursor: default; background: transparent; pointer-events: none;
 }
 
-/* Hover state for workable days */
-.day-cell:not(.empty):not(.holiday):not(.off):hover {
-  background: var(--blue-soft);
-  color: #1e40af;
+/* Regular worked day hover */
+.day-cell:not(.empty):not(.off):not(.holiday):not(.holiday-worked):not(.holiday-half):hover {
+  background: var(--blue-soft); color: #1e40af;
 }
 
-/* Holiday (pre-set, non-editable) */
+/* ── HOLIDAY (RESA Closed — default, but now clickable) ── */
 .day-cell.holiday {
   background: var(--amber-soft);
   color: var(--amber);
   font-weight: 700;
-  cursor: default;
-  pointer-events: none;
+  /* NOT pointer-events:none anymore — holidays are editable */
 }
-/* Star indicator (shape, not just color) */
 .day-cell.holiday::after {
   content: '★';
-  position: absolute;
-  top: 1px; right: 3px;
-  font-size: 0.45rem;
-  color: var(--amber);
-  aria-hidden: true;
+  position: absolute; top: 1px; right: 3px;
+  font-size: 0.45rem; color: var(--amber);
+}
+.day-cell.holiday:hover {
+  background: #fde68a;
+  color: #78350f;
 }
 
-/* User-toggled day off */
-.day-cell.off {
-  background: var(--red-soft);
-  color: var(--red);
+/* ── HOLIDAY WORKED (staff worked on a RESA-closed day) ── */
+.day-cell.holiday-worked {
+  background: var(--purple-soft);
+  color: var(--purple);
   font-weight: 700;
 }
-/* X indicator (shape, not just color) */
-.day-cell.off::after {
-  content: '✕';
-  position: absolute;
-  top: 1px; right: 3px;
-  font-size: 0.5rem;
-  color: var(--red);
-  aria-hidden: true;
+.day-cell.holiday-worked::after {
+  content: '✓';
+  position: absolute; top: 1px; right: 3px;
+  font-size: 0.5rem; color: var(--purple);
 }
-.day-cell.off:hover {
-  background: #fecaca;
-}
+.day-cell.holiday-worked:hover { background: #e9d5ff; }
 
-/* Half day */
-.day-cell.half {
-  background: #eff6ff;
-  color: #1d4ed8;
+/* ── HOLIDAY HALF (half day worked on a RESA-closed day) ── */
+.day-cell.holiday-half {
+  background: #fdf4ff;
+  color: var(--purple);
   font-weight: 700;
-  position: relative;
+  border: 1px solid #d8b4fe;
 }
-.day-cell.half::after {
+.day-cell.holiday-half::after {
   content: '½';
-  position: absolute;
-  top: 1px; right: 3px;
-  font-size: 0.55rem;
-  color: #1d4ed8;
+  position: absolute; top: 1px; right: 3px;
+  font-size: 0.55rem; color: var(--purple);
 }
+.day-cell.holiday-half:hover { background: #f3e8ff; }
+
+/* ── USER-TOGGLED DAY OFF ── */
+.day-cell.off { background: var(--red-soft); color: var(--red); font-weight: 700; }
+.day-cell.off::after { content: '✕'; position: absolute; top: 1px; right: 3px; font-size: 0.5rem; color: var(--red); }
+.day-cell.off:hover { background: #fecaca; }
+
+/* ── HALF DAY ── */
+.day-cell.half { background: #eff6ff; color: #1d4ed8; font-weight: 700; position: relative; }
+.day-cell.half::after { content: '½'; position: absolute; top: 1px; right: 3px; font-size: 0.55rem; color: #1d4ed8; }
 .day-cell.half:hover { background: #dbeafe; }
 
-/* Noted day (Spring Break, Ed Tech Forward) — still a worked day, just annotated */
-.day-cell.noted {
-  border-bottom: 2px solid #d97706;
-}
+/* ── NOTED (Spring Break / PD) ── */
+.day-cell.noted { border-bottom: 2px solid #d97706; }
 .day-cell.noted.off  { border-bottom-color: var(--red); }
 .day-cell.noted.half { border-bottom-color: #1d4ed8; }
 
-/* Holiday note strip */
 .h-strip {
-  font-size: 0.72rem;
-  color: var(--amber);
-  background: var(--amber-soft);
-  border-top: 1px dashed #d97706;
-  padding: 5px 13px;
-  line-height: 1.45;
+  font-size: 0.72rem; color: var(--amber); background: var(--amber-soft);
+  border-top: 1px dashed #d97706; padding: 5px 13px; line-height: 1.45;
 }
 
 /* ── FOOTER ──────────────────────────────────────────────────── */
-.footer-bar {
-  max-width: 1140px;
-  margin: 0 auto;
-  padding: 0 20px 36px;
-}
+.footer-bar { max-width: 1140px; margin: 0 auto; padding: 0 20px 36px; }
 .footer-inner {
-  background: var(--navy);
-  border-radius: var(--radius);
-  color: #ffffff;
-  padding: 18px 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
+  background: var(--navy); border-radius: var(--radius); color: #ffffff;
+  padding: 18px 32px; display: flex; align-items: center;
+  justify-content: space-between; gap: 16px; flex-wrap: wrap;
 }
 .f-label { font-family: 'Playfair Display', serif; font-size: 1rem; color: #cbd5e1; }
 .f-num   { font-family: 'Playfair Display', serif; font-size: 2.2rem; line-height: 1; color: #ffffff; }
-.f-goal  {
-  font-size: 0.75rem;
-  background: rgba(255,255,255,0.15);
-  border-radius: 20px;
-  padding: 4px 15px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #ffffff;
-}
+.f-goal  { font-size: 0.75rem; background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 15px; letter-spacing: 0.06em; text-transform: uppercase; color: #ffffff; }
 
 /* ── LOADING OVERLAY ─────────────────────────────────────────── */
 #loading {
-  position: fixed; inset: 0;
-  background: rgba(13,33,82,0.88);
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  z-index: 999;
-  color: #ffffff;
-  font-size: 0.92rem;
-  letter-spacing: 0.03em;
+  position: fixed; inset: 0; background: rgba(13,33,82,0.88);
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; z-index: 999; color: #ffffff; font-size: 0.92rem; letter-spacing: 0.03em;
 }
-.spinner {
-  width: 36px; height: 36px;
-  border: 3px solid rgba(255,255,255,0.2);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.65s linear infinite;
-}
+.spinner { width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.2); border-top-color: white; border-radius: 50%; animation: spin 0.65s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── WEEKEND WORK DAY SECTION ────────────────────────────────── */
-.weekend-section {
-  border-top: 1px solid var(--border);
-  padding: 8px 12px 10px;
-  background: #fafbff;
-}
-.weekend-added {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 6px;
-  min-height: 0;
-}
+.weekend-section { border-top: 1px solid var(--border); padding: 8px 12px 10px; background: #fafbff; }
+.weekend-added { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; min-height: 0; }
 .weekend-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: #e0f2fe;
-  color: #0369a1;
-  border-radius: 20px;
-  padding: 2px 8px 2px 10px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  border: 1px solid #bae6fd;
+  display: inline-flex; align-items: center; gap: 4px;
+  background: #e0f2fe; color: #0369a1; border-radius: 20px;
+  padding: 2px 8px 2px 10px; font-size: 0.72rem; font-weight: 600; border: 1px solid #bae6fd;
 }
 .chip-remove {
-  background: none;
-  border: none;
-  color: #0369a1;
-  cursor: pointer;
-  font-size: 0.85rem;
-  padding: 0 2px;
-  line-height: 1;
-  border-radius: 50%;
-  min-height: 18px; min-width: 18px;
-  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; color: #0369a1; cursor: pointer;
+  font-size: 0.85rem; padding: 0 2px; line-height: 1; border-radius: 50%;
+  min-height: 18px; min-width: 18px; display: flex; align-items: center; justify-content: center;
 }
 .chip-remove:hover { background: #bae6fd; }
 .btn-add-weekend {
-  background: none;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-family: 'Outfit', sans-serif;
-  cursor: pointer;
-  padding: 4px 10px;
-  width: 100%;
-  text-align: left;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  min-height: 32px;
+  background: none; border: 1px dashed var(--border); border-radius: 6px;
+  color: var(--muted); font-size: 0.72rem; font-family: 'Outfit', sans-serif;
+  cursor: pointer; padding: 4px 10px; width: 100%; text-align: left;
+  transition: background 0.15s, color 0.15s, border-color 0.15s; min-height: 32px;
 }
-.btn-add-weekend:hover,
-.btn-add-weekend.open {
-  background: var(--blue-soft);
-  color: var(--blue);
-  border-color: var(--blue-mid);
-}
+.btn-add-weekend:hover, .btn-add-weekend.open { background: var(--blue-soft); color: var(--blue); border-color: var(--blue-mid); }
 .weekend-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 8px;
-  padding: 8px;
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; padding: 8px;
+  background: white; border: 1px solid var(--border); border-radius: 8px;
 }
 .weekend-day-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
-  font-family: 'Outfit', sans-serif;
-  transition: background 0.12s, border-color 0.12s;
-  min-height: 44px;
-  min-width: 44px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px;
+  background: white; cursor: pointer; font-family: 'Outfit', sans-serif;
+  transition: background 0.12s, border-color 0.12s; min-height: 44px; min-width: 44px;
 }
 .weekend-day-btn:hover { background: var(--blue-soft); border-color: var(--blue-mid); }
-.weekend-day-btn.added {
-  background: #e0f2fe;
-  border-color: #38bdf8;
-  color: #0369a1;
-}
+.weekend-day-btn.added { background: #e0f2fe; border-color: #38bdf8; color: #0369a1; }
 .wd-dow { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 .weekend-day-btn.added .wd-dow { color: #0369a1; }
 .wd-num { font-size: 0.9rem; font-weight: 600; }
 
 /* ── PRINT ───────────────────────────────────────────────────── */
-/* ── PRINT ONE-PAGER ─────────────────────────────────────────── */
 #print-view { display: none; }
 
 @media print {
   * { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
-
-  /* Hide everything except the print view */
   body > *:not(#print-view) { display: none !important; }
   #print-view { display: block !important; }
 
-  @page {
-    size: letter portrait;
-    margin: 0.4in 0.35in 0.4in 0.35in;
-  }
+  @page { size: letter portrait; margin: 0.4in 0.35in 0.4in 0.35in; }
 
-  /* ── Print view shell ── */
-  #print-view {
-    font-family: Arial, sans-serif;
-    font-size: 7.5pt;
-    color: #000;
-    width: 100%;
-  }
-
-  /* Logo / header */
-  .pv-header {
-    text-align: center;
-    margin-bottom: 6pt;
-  }
-  .pv-logo {
-    font-size: 11pt;
-    font-weight: bold;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: #1a4fc4;
-    line-height: 1.1;
-  }
+  #print-view { font-family: Arial, sans-serif; font-size: 7.5pt; color: #000; width: 100%; }
+  .pv-header { text-align: center; margin-bottom: 6pt; }
+  .pv-logo { font-size: 11pt; font-weight: bold; letter-spacing: 0.15em; text-transform: uppercase; color: #1a4fc4; line-height: 1.1; }
   .pv-logo span { display: block; font-size: 7pt; font-weight: normal; letter-spacing: 0.3em; color: #444; }
-  .pv-title {
-    font-size: 14pt;
-    font-weight: bold;
-    margin: 4pt 0 2pt;
-    color: #000;
-  }
-  .pv-name-line {
-    font-size: 9pt;
-    margin-bottom: 4pt;
-    text-align: left;
-  }
-  .pv-name-line span {
-    display: inline-block;
-    min-width: 200pt;
-    border-bottom: 1pt solid #000;
-    margin-left: 4pt;
-  }
-
-  /* ── Month pair rows ── */
-  .pv-row {
-    display: grid;
-    grid-template-columns: 115pt 1fr 6pt 1fr 115pt;
-    gap: 0;
-    margin-bottom: 5pt;
-    align-items: start;
-  }
-
-  /* Left/right note columns */
-  .pv-note {
-    font-size: 6.5pt;
-    color: #000;
-    padding: 0 5pt;
-    line-height: 1.35;
-  }
-  .pv-note .pv-days {
-    font-size: 7pt;
-    margin-bottom: 2pt;
-  }
+  .pv-title { font-size: 14pt; font-weight: bold; margin: 4pt 0 2pt; color: #000; }
+  .pv-name-line { font-size: 9pt; margin-bottom: 4pt; text-align: left; }
+  .pv-name-line span { display: inline-block; min-width: 200pt; border-bottom: 1pt solid #000; margin-left: 4pt; }
+  .pv-row { display: grid; grid-template-columns: 115pt 1fr 6pt 1fr 115pt; gap: 0; margin-bottom: 5pt; align-items: start; }
+  .pv-note { font-size: 6.5pt; color: #000; padding: 0 5pt; line-height: 1.35; }
+  .pv-note .pv-days { font-size: 7pt; margin-bottom: 2pt; }
   .pv-note .pv-days strong { font-size: 9pt; }
   .pv-note .pv-note-text { font-style: italic; }
   .pv-note-right { text-align: right; }
   .pv-spacer { width: 6pt; }
-
-  /* ── Individual mini calendar ── */
-  .pv-cal {
-    border-collapse: collapse;
-    width: 100%;
-    table-layout: fixed;
-  }
-
-  /* Month header row */
-  .pv-cal .pv-month-hdr {
-    background: #1a4fc4 !important;
-    color: #fff !important;
-    text-align: center;
-    font-size: 7.5pt;
-    font-weight: bold;
-    padding: 2pt 0;
-    letter-spacing: 0.04em;
-  }
-
-  /* DOW header */
-  .pv-cal .pv-dow td {
-    text-align: center;
-    font-size: 6pt;
-    font-weight: bold;
-    padding: 1pt 0;
-    border-bottom: 0.5pt solid #999;
-    color: #333;
-  }
-
-  /* Day cells */
-  .pv-cal td.pv-day {
-    text-align: center;
-    font-size: 7pt;
-    padding: 1.5pt 0;
-    border: 0.25pt solid #ddd;
-    width: 14.28%;
-  }
+  .pv-cal { border-collapse: collapse; width: 100%; table-layout: fixed; }
+  .pv-cal .pv-month-hdr { background: #1a4fc4 !important; color: #fff !important; text-align: center; font-size: 7.5pt; font-weight: bold; padding: 2pt 0; letter-spacing: 0.04em; }
+  .pv-cal .pv-dow td { text-align: center; font-size: 6pt; font-weight: bold; padding: 1pt 0; border-bottom: 0.5pt solid #999; color: #333; }
+  .pv-cal td.pv-day { text-align: center; font-size: 7pt; padding: 1.5pt 0; border: 0.25pt solid #ddd; width: 14.28%; }
   .pv-cal td.pv-empty { border: none; background: white !important; }
-
-  /* Cell states */
-  .pv-cal td.pv-holiday { background: #000 !important; color: #fff !important; font-weight: bold; }
-  .pv-cal td.pv-off     { background: #000 !important; color: #fff !important; font-weight: bold; }
-  .pv-cal td.pv-half    { background: #555 !important; color: #fff !important; font-weight: bold; }
-  .pv-cal td.pv-noted   { background: #4caf50 !important; color: #fff !important; }
+  .pv-cal td.pv-holiday      { background: #000 !important; color: #fff !important; font-weight: bold; }
+  .pv-cal td.pv-off          { background: #000 !important; color: #fff !important; font-weight: bold; }
+  .pv-cal td.pv-half         { background: #555 !important; color: #fff !important; font-weight: bold; }
+  .pv-cal td.pv-noted        { background: #4caf50 !important; color: #fff !important; }
   .pv-cal td.pv-weekend-work { background: #1a4fc4 !important; color: #fff !important; font-weight: bold; }
-
-  /* ── Footer total bar ── */
-  .pv-footer {
-    background: #1a1a1a !important;
-    color: #fff !important;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4pt 12pt;
-    margin-top: 4pt;
-    font-size: 9pt;
-    font-weight: bold;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  .pv-footer .pv-total-num {
-    font-size: 16pt;
-    font-weight: bold;
-    font-family: Arial, sans-serif;
-  }
+  /* Holiday worked = purple in print */
+  .pv-cal td.pv-holiday-worked { background: #6b21a8 !important; color: #fff !important; font-weight: bold; }
+  .pv-cal td.pv-holiday-half   { background: #a855f7 !important; color: #fff !important; font-weight: bold; }
+  .pv-footer { background: #1a1a1a !important; color: #fff !important; display: flex; justify-content: space-between; align-items: center; padding: 4pt 12pt; margin-top: 4pt; font-size: 9pt; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; }
+  .pv-footer .pv-total-num { font-size: 16pt; font-weight: bold; font-family: Arial, sans-serif; }
 }
 
 /* ── RESPONSIVE ──────────────────────────────────────────────── */
@@ -854,16 +452,14 @@ body {
   .cal-wrap { grid-template-columns: 1fr; }
   .topbar { padding: 0 12px; gap: 8px; }
   .footer-inner { flex-direction: column; text-align: center; }
-  .day-cell { min-height: 44px; } /* larger touch target on mobile */
+  .day-cell { min-height: 44px; }
 }
 </style>
 </head>
 <body>
 
-<!-- Skip navigation link for keyboard users -->
 <a class="skip-link" href="#main-content">Skip to calendar</a>
 
-<!-- Loading overlay — announced to screen readers -->
 <div id="loading" role="status" aria-live="polite" aria-label="Loading">
   <div class="spinner" aria-hidden="true"></div>
   <span id="loading-msg">Loading…</span>
@@ -911,7 +507,6 @@ body {
     <button class="btn-out" onclick="signOut()">Sign out</button>
   </nav>
 
-  <!-- Summary stats -->
   <section class="summary" aria-label="Calendar summary">
     <div class="s-stat">
       <div class="stat-icon si-blue" aria-hidden="true"></div>
@@ -926,40 +521,30 @@ body {
       <span>Half days: <strong id="s-half" aria-live="polite">0</strong></span>
     </div>
     <div class="s-stat">
+      <div class="stat-icon si-purple" aria-hidden="true"></div>
+      <span>Holiday days worked: <strong id="s-holworked" aria-live="polite">0</strong></span>
+    </div>
+    <div class="s-stat">
       <div class="stat-icon si-green" aria-hidden="true"></div>
       <span>Days worked: <strong id="s-worked" aria-live="polite">&nbsp;</strong></span>
     </div>
     <div class="s-goal under" id="s-goal" aria-live="polite" aria-atomic="true"></div>
   </section>
 
-  <!-- Legend -->
   <div class="legend-row" role="note" aria-label="Calendar legend">
-    <div class="leg">
-      <div class="sw sw-h" aria-hidden="true">★</div>
-      <span>RESA Closed (not editable)</span>
-    </div>
-    <div class="leg">
-      <div class="sw sw-o" aria-hidden="true">✕</div>
-      <span>Full day off</span>
-    </div>
-    <div class="leg">
-      <div class="sw sw-half" aria-hidden="true">½</div>
-      <span>Half day</span>
-    </div>
-    <div class="leg">
-      <div class="sw sw-note" aria-hidden="true" style="font-size:0.5rem">▼</div>
-      <span>Spring Break / PD noted (still worked)</span>
-    </div>
-    <span class="leg-hint">Click a date to cycle: worked → day off → half day → worked</span>
+    <div class="leg"><div class="sw sw-h" aria-hidden="true">★</div><span>RESA Closed</span></div>
+    <div class="leg"><div class="sw sw-hw" aria-hidden="true">✓</div><span>Holiday – Worked</span></div>
+    <div class="leg"><div class="sw sw-half" aria-hidden="true">½</div><span>Half Day Worked</span></div>
+    <div class="leg"><div class="sw sw-o" aria-hidden="true">✕</div><span>Full Day Off</span></div>
+    <div class="leg"><div class="sw sw-note" aria-hidden="true" style="font-size:0.5rem">▼</div><span>Spring Break / PD (still worked)</span></div>
+    <span class="leg-hint">Click any date to cycle its state · Holiday days cycle: closed → worked → half → closed</span>
     <button class="btn-print" onclick="window.print()">🖨 Print / Save PDF</button>
   </div>
 
-  <!-- Calendar -->
   <main id="main-content" aria-label="School year calendar">
     <div class="cal-wrap" id="cal-wrap"></div>
   </main>
 
-  <!-- Footer total -->
   <footer class="footer-bar">
     <div class="footer-inner" aria-label="Total days worked summary">
       <div class="f-label" id="footer-label">Total Number of Days Worked</div>
@@ -974,90 +559,62 @@ body {
 <script>
 // ── Calendar data ──────────────────────────────────────────────
 // Holidays sourced from https://www.berrienresa.org/common-calendar (2026-2027)
-// holidays[]  = full days off (blocked, red, synced to GCal)
-// notes[]     = informational only (amber strip, still counted as worked)
-// Spring Break (Mar 29–Apr 2) and Ed Tech Forward (Oct 9) are noted but NOT days off
+// Nov 26 = 4th Thursday (Thanksgiving 2026) ✓  Nov 27 = Friday after ✓
 const MONTHS = [
-  {
-    year:2026, month:6, label:'July 2026',
+  { year:2026, month:6,  label:'July 2026',
     holidays:[4], notes:[],
-    note:'July 4 – Independence Day (RESA CLOSED)'
-  },
-  {
-    year:2026, month:7, label:'August 2026',
-    holidays:[], notes:[],
-    note:''
-  },
-  {
-    year:2026, month:8, label:'September 2026',
+    note:'July 4 – Independence Day (RESA CLOSED)' },
+  { year:2026, month:7,  label:'August 2026',
+    holidays:[], notes:[], note:'' },
+  { year:2026, month:8,  label:'September 2026',
     holidays:[7], notes:[],
-    note:'Sept 7 – Labor Day (RESA CLOSED)'
-  },
-  {
-    year:2026, month:9, label:'October 2026',
+    note:'Sept 7 – Labor Day (RESA CLOSED)' },
+  { year:2026, month:9,  label:'October 2026',
     holidays:[], notes:[9],
-    note:'Oct 9 – Ed Tech Forward Countywide PD (working day – noted only)'
-  },
-  {
-    year:2026, month:10, label:'November 2026',
+    note:'Oct 9 – Ed Tech Forward Countywide PD (working day – noted only)' },
+  { year:2026, month:10, label:'November 2026',
     holidays:[26,27], notes:[],
-    note:'Nov 26–27 – Thanksgiving (RESA CLOSED)'
-  },
-  {
-    year:2026, month:11, label:'December 2026',
-    // Winter Break Dec 21–Jan 1. Weekdays: 21,22,23,24,25,28,29,30,31
+    note:'Nov 26–27 – Thanksgiving (RESA CLOSED)' },
+  { year:2026, month:11, label:'December 2026',
     holidays:[21,22,23,24,25,28,29,30,31], notes:[],
-    note:'Dec 21 – Jan 1 – Winter Break (RESA CLOSED)'
-  },
-  {
-    year:2027, month:0, label:'January 2027',
+    note:'Dec 21 – Jan 1 – Winter Break (RESA CLOSED)' },
+  { year:2027, month:0,  label:'January 2027',
     holidays:[1,18], notes:[],
-    note:"Jan 1 – New Year's Day (Winter Break) · Jan 18 – MLK Jr. Day (RESA CLOSED)"
-  },
-  {
-    year:2027, month:1, label:'February 2027',
+    note:"Jan 1 – New Year's Day (Winter Break) · Jan 18 – MLK Jr. Day (RESA CLOSED)" },
+  { year:2027, month:1,  label:'February 2027',
     holidays:[15], notes:[],
-    note:"Feb 15 – Presidents' Day (RESA CLOSED)"
-  },
-  {
-    year:2027, month:2, label:'March 2027',
-    // Good Friday Mar 26 = CLOSED. Spring Break Mar 29–31 = noted only (worked)
+    note:"Feb 15 – Presidents' Day (RESA CLOSED)" },
+  { year:2027, month:2,  label:'March 2027',
     holidays:[26], notes:[29,30,31],
-    note:'Mar 26 – Good Friday (RESA CLOSED) · Mar 29–Apr 2 – Spring Break (working days – noted only)'
-  },
-  {
-    year:2027, month:3, label:'April 2027',
-    // Spring Break Apr 1–2 = noted only (worked)
+    note:'Mar 26 – Good Friday (RESA CLOSED) · Mar 29–Apr 2 – Spring Break (working days – noted only)' },
+  { year:2027, month:3,  label:'April 2027',
     holidays:[], notes:[1,2],
-    note:'Apr 1–2 – Spring Break continued (working days – noted only)'
-  },
-  {
-    year:2027, month:4, label:'May 2027',
+    note:'Apr 1–2 – Spring Break continued (working days – noted only)' },
+  { year:2027, month:4,  label:'May 2027',
     holidays:[31], notes:[],
-    note:'May 31 – Memorial Day (RESA CLOSED)'
-  },
-  {
-    year:2027, month:5, label:'June 2027',
-    holidays:[], notes:[],
-    note:''
-  },
+    note:'May 31 – Memorial Day (RESA CLOSED)' },
+  { year:2027, month:5,  label:'June 2027',
+    holidays:[], notes:[], note:'' },
 ];
 
 // ── App state ──────────────────────────────────────────────────
-// Day states: a day can be: worked (default) | off | half
-// halfDays[idx]   = Set of day numbers marked as half days
-// weekendDays[idx] = Set of Sat/Sun day numbers user has added as work days
-let offDays     = MONTHS.map(() => new Set());
-let halfDays    = MONTHS.map(() => new Set());
-let weekendDays = MONTHS.map(() => new Set());
-let gcalIds   = {};  // "u-{idx}-{day}" or "h-{idx}-{day}" → GCal event id
+// offDays[idx]         – weekdays user marked as day off
+// halfDays[idx]        – weekdays user marked as half day
+// weekendDays[idx]     – weekend days user added as work days
+// holidayWorked[idx]   – RESA-closed days user says they worked (full)
+// holidayHalf[idx]     – RESA-closed days user says they half-worked
+let offDays       = MONTHS.map(() => new Set());
+let halfDays      = MONTHS.map(() => new Set());
+let weekendDays   = MONTHS.map(() => new Set());
+let holidayWorked = MONTHS.map(() => new Set());
+let holidayHalf   = MONTHS.map(() => new Set());
+let gcalIds   = {};
 let token        = null;
 let stateEventId = null;
 let syncTimer    = null;
 let currentUserFullName = '';
 
 // ── Auth ───────────────────────────────────────────────────────
-// Shared token client — created once, reused for silent refresh and explicit sign-in
 let _tokenClient = null;
 
 function getTokenClient(onSuccess) {
@@ -1066,17 +623,12 @@ function getTokenClient(onSuccess) {
     scope: SCOPES,
     callback: async (resp) => {
       if (resp.error) {
-        // Silent refresh failed — fall back to showing account picker
         if (resp.error === 'interaction_required' || resp.error === 'user_cancelled') {
           _tokenClient.requestAccessToken({ prompt: 'select_account' });
-        } else {
-          console.error('OAuth error:', resp);
-          hideLoad();
-        }
+        } else { console.error('OAuth error:', resp); hideLoad(); }
         return;
       }
       token = resp.access_token;
-      // Schedule silent refresh 5 min before token expires (tokens last 1hr)
       setTimeout(silentRefresh, 55 * 60 * 1000);
       await onSuccess();
     },
@@ -1086,7 +638,6 @@ function getTokenClient(onSuccess) {
 
 async function silentRefresh() {
   if (!_tokenClient) return;
-  // prompt:'' = no UI shown; fails silently if consent needed
   _tokenClient.requestAccessToken({ prompt: '' });
 }
 
@@ -1095,45 +646,34 @@ function startSignIn() {
     document.getElementById('config-warn').style.display = 'block';
     return;
   }
-
   const client = getTokenClient(async () => {
     await loadProfile();
     showLoad('Loading your calendar…');
     await loadDrive();
     renderApp();
   });
-
-  // Try silently first (no UI) — works if user already granted permission.
-  // If it fails, the callback above will retry with prompt:'select_account'.
   client.requestAccessToken({ prompt: '' });
 }
 
 function applyProfile(u) {
   const fullName = u.name || [u.given_name, u.family_name].filter(Boolean).join(' ') || u.email || '';
-  const displayName = fullName;
   currentUserFullName = fullName;
-
-  document.getElementById('u-name').textContent = displayName;
-
-  // Update aria-label with actual full name
-  document.querySelector('.user-chip').setAttribute('aria-label', `Signed in as ${displayName}`);
-
+  document.getElementById('u-name').textContent = fullName;
+  document.querySelector('.user-chip').setAttribute('aria-label', `Signed in as ${fullName}`);
   if (u.picture) {
     const img = document.getElementById('u-avatar');
     img.src = u.picture;
-    img.alt = `${displayName}'s profile photo`;
+    img.alt = `${fullName}'s profile photo`;
     img.style.display = 'block';
     document.getElementById('u-fallback').style.display = 'none';
   } else {
-    document.getElementById('u-fallback').textContent = displayName[0]?.toUpperCase() || '?';
+    document.getElementById('u-fallback').textContent = fullName[0]?.toUpperCase() || '?';
   }
 }
 
 async function loadProfile() {
   try {
-    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: 'Bearer ' + token }
-    });
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: 'Bearer ' + token } });
     applyProfile(await r.json());
   } catch(e) {}
 }
@@ -1141,85 +681,74 @@ async function loadProfile() {
 function signOut() {
   if (token) { try { google.accounts.oauth2.revoke(token, ()=>{}); } catch(e){} }
   token = null; stateEventId = null; currentUserFullName = '';
-  offDays     = MONTHS.map(() => new Set());
-  halfDays    = MONTHS.map(() => new Set());
-  weekendDays = MONTHS.map(() => new Set());
-  gcalIds     = {};
+  offDays       = MONTHS.map(() => new Set());
+  halfDays      = MONTHS.map(() => new Set());
+  weekendDays   = MONTHS.map(() => new Set());
+  holidayWorked = MONTHS.map(() => new Set());
+  holidayHalf   = MONTHS.map(() => new Set());
+  gcalIds       = {};
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
-  // Return focus to sign-in button
   document.getElementById('sign-in-btn').focus();
 }
 
-// ── Google Drive ───────────────────────────────────────────────
-// ── Calendar state storage ────────────────────────────────────
-// State is stored as JSON in the description of a hidden sentinel event
-// dated Jan 1 2000 so it never shows in normal calendar views.
-
+// ── Calendar API helpers ───────────────────────────────────────
 async function calFetch(path, method, body) {
   method = method || 'GET';
   const opts = {
-    method: method,
+    method,
     headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
   };
   if (body) opts.body = JSON.stringify(body);
   const r = await fetch('https://www.googleapis.com/calendar/v3' + path, opts);
-  if (!r.ok) {
-    const txt = await r.text();
-    throw new Error(r.status + ': ' + txt);
-  }
+  if (!r.ok) { const txt = await r.text(); throw new Error(r.status + ': ' + txt); }
   return method === 'DELETE' ? null : r.json();
 }
 
-// Build lookup: "YYYY-MM-DD" -> { idx, day } for all days in the school year
 function buildDateIndex() {
-  var index = {};
-  MONTHS.forEach(function(m, idx) {
-    var total = new Date(m.year, m.month + 1, 0).getDate();
-    for (var d = 1; d <= total; d++) {
-      var key = m.year + '-' + String(m.month + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-      index[key] = { idx: idx, day: d };
+  const index = {};
+  MONTHS.forEach((m, idx) => {
+    const total = new Date(m.year, m.month + 1, 0).getDate();
+    for (let d = 1; d <= total; d++) {
+      const key = m.year + '-' + String(m.month + 1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      index[key] = { idx, day: d };
     }
   });
   return index;
 }
 
-// Scan the user's actual Google Calendar for existing Non-Contract Day events
-// and import them into the tool's state. Called the first time (no saved state).
 async function importFromCalendar() {
-  var timeMin = encodeURIComponent('2026-07-01T00:00:00Z');
-  var timeMax = encodeURIComponent('2027-06-30T23:59:59Z');
-  var dateIndex = buildDateIndex();
-  var titlesToImport = [
-    { title: EVENT_TITLE,   isHalf: false },
-    { title: HOLIDAY_TITLE, isHalf: false },
-    { title: HALF_TITLE,    isHalf: true  },
+  const timeMin = encodeURIComponent('2026-07-01T00:00:00Z');
+  const timeMax = encodeURIComponent('2027-06-30T23:59:59Z');
+  const dateIndex = buildDateIndex();
+  const titlesToImport = [
+    { title: EVENT_TITLE,      isHalf: false, isHolWorked: false, isHolHalf: false },
+    { title: HOLIDAY_TITLE,    isHalf: false, isHolWorked: false, isHolHalf: false },
+    { title: HALF_TITLE,       isHalf: true,  isHolWorked: false, isHolHalf: false },
+    { title: HOL_WORKED_TITLE, isHalf: false, isHolWorked: true,  isHolHalf: false },
+    { title: HOL_HALF_TITLE,   isHalf: false, isHolWorked: false, isHolHalf: true  },
   ];
-  for (var t = 0; t < titlesToImport.length; t++) {
-    var title  = titlesToImport[t].title;
-    var isHalf = titlesToImport[t].isHalf;
-    var pageToken = '';
+  for (const { title, isHalf, isHolWorked, isHolHalf } of titlesToImport) {
+    let pageToken = '';
     do {
-      var qs = 'timeMin=' + timeMin +
-               '&timeMax=' + timeMax +
-               '&q=' + encodeURIComponent(title) +
-               '&singleEvents=true&maxResults=250' +
-               '&fields=nextPageToken,items(id,summary,start)' +
-               (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
-      var result = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
-      var items = result.items || [];
-      items.forEach(function(ev) {
-        if (ev.summary !== title) return; // GCal q= is fuzzy; enforce exact match
-        var dateKey = ev.start && (ev.start.date || (ev.start.dateTime || '').slice(0, 10));
+      const qs = 'timeMin=' + timeMin + '&timeMax=' + timeMax +
+        '&q=' + encodeURIComponent(title) + '&singleEvents=true&maxResults=250' +
+        '&fields=nextPageToken,items(id,summary,start)' +
+        (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
+      const result = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
+      (result.items || []).forEach(ev => {
+        if (ev.summary !== title) return;
+        const dateKey = ev.start && (ev.start.date || (ev.start.dateTime || '').slice(0, 10));
         if (!dateKey) return;
-        var entry = dateIndex[dateKey];
+        const entry = dateIndex[dateKey];
         if (!entry) return;
-        var idx = entry.idx, day = entry.day;
-        if (MONTHS[idx].holidays.includes(day)) return; // skip pre-set holidays
-        var stateKey = 'u-' + idx + '-' + day;
+        const { idx, day } = entry;
+        const stateKey = (isHolWorked || isHolHalf ? 'h-' : 'u-') + idx + '-' + day;
         gcalIds[stateKey] = ev.id;
-        if (isHalf) halfDays[idx].add(day);
-        else        offDays[idx].add(day);
+        if (isHolWorked)      holidayWorked[idx].add(day);
+        else if (isHolHalf)   holidayHalf[idx].add(day);
+        else if (isHalf)      halfDays[idx].add(day);
+        else if (!MONTHS[idx].holidays.includes(day)) offDays[idx].add(day);
       });
       pageToken = result.nextPageToken || '';
     } while (pageToken);
@@ -1227,21 +756,21 @@ async function importFromCalendar() {
 }
 
 async function loadDrive() {
-  // 1. Look for our sentinel state event
-  var qs = 'q=' + encodeURIComponent('summary="' + STATE_MARKER + '"') + '&maxResults=1&fields=items(id,description)';
-  var list = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
-  var existing = list.items && list.items[0];
+  const qs = 'q=' + encodeURIComponent('summary="' + STATE_MARKER + '"') + '&maxResults=1&fields=items(id,description)';
+  const list = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
+  const existing = list.items && list.items[0];
   if (existing) {
     stateEventId = existing.id;
     try {
-      var data = JSON.parse(existing.description || '{}');
-      if (data.offDays)     data.offDays.forEach(function(arr,i)     { if (i < MONTHS.length) offDays[i]     = new Set(arr); });
-      if (data.halfDays)    data.halfDays.forEach(function(arr,i)    { if (i < MONTHS.length) halfDays[i]    = new Set(arr); });
-      if (data.weekendDays) data.weekendDays.forEach(function(arr,i) { if (i < MONTHS.length) weekendDays[i] = new Set(arr); });
-      if (data.gcalIds)     gcalIds = data.gcalIds;
+      const data = JSON.parse(existing.description || '{}');
+      if (data.offDays)       data.offDays.forEach((arr,i)       => { if (i < MONTHS.length) offDays[i]       = new Set(arr); });
+      if (data.halfDays)      data.halfDays.forEach((arr,i)      => { if (i < MONTHS.length) halfDays[i]      = new Set(arr); });
+      if (data.weekendDays)   data.weekendDays.forEach((arr,i)   => { if (i < MONTHS.length) weekendDays[i]   = new Set(arr); });
+      if (data.holidayWorked) data.holidayWorked.forEach((arr,i) => { if (i < MONTHS.length) holidayWorked[i] = new Set(arr); });
+      if (data.holidayHalf)   data.holidayHalf.forEach((arr,i)   => { if (i < MONTHS.length) holidayHalf[i]   = new Set(arr); });
+      if (data.gcalIds) gcalIds = data.gcalIds;
     } catch(e) { console.warn('Could not parse saved state', e); }
   } else {
-    // 2. First time — import any existing Non-Contract Day events from the calendar
     await importFromCalendar();
   }
 }
@@ -1249,17 +778,19 @@ async function loadDrive() {
 async function saveDrive() {
   setSyncMsg('saving');
   const description = JSON.stringify({
-    version: 1,
+    version: 2,
     schoolYear: '2026-2027',
     savedAt: new Date().toISOString(),
-    offDays:     offDays.map(function(s)     { return [...s]; }),
-    halfDays:    halfDays.map(function(s)    { return [...s]; }),
-    weekendDays: weekendDays.map(function(s) { return [...s]; }),
-    gcalIds: gcalIds,
+    offDays:       offDays.map(s       => [...s]),
+    halfDays:      halfDays.map(s      => [...s]),
+    weekendDays:   weekendDays.map(s   => [...s]),
+    holidayWorked: holidayWorked.map(s => [...s]),
+    holidayHalf:   holidayHalf.map(s   => [...s]),
+    gcalIds,
   });
   const eventBody = {
     summary: STATE_MARKER,
-    description: description,
+    description,
     start: { date: '2000-01-01' },
     end:   { date: '2000-01-02' },
     visibility: 'private',
@@ -1286,57 +817,36 @@ function setSyncMsg(s) {
   if (s === 'saved') setTimeout(() => { el.textContent = ''; el.className = 'sync-msg'; }, 3000);
 }
 
-// ── Google Calendar ────────────────────────────────────────────
+// ── GCal event helpers ─────────────────────────────────────────
 function dateStr(year, month, day) {
   return `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 }
-
 function nextDateStr(year, month, day) {
-  const d = new Date(year, month, day);
-  d.setDate(d.getDate() + 1);
+  const d = new Date(year, month, day); d.setDate(d.getDate() + 1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-
 function previousDateStr(year, month, day) {
-  const d = new Date(year, month, day);
-  d.setDate(d.getDate() - 1);
+  const d = new Date(year, month, day); d.setDate(d.getDate() - 1);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function uniqueTitles(titles) {
-  return [...new Set((titles || []).filter(Boolean))];
-}
-
-function dayBlockTitlesFor(title) {
-  // These titles are mutually exclusive on the same calendar day.
-  // If either already exists, reuse one existing event instead of creating another.
-  if (title === EVENT_TITLE || title === HOLIDAY_TITLE) return [EVENT_TITLE, HOLIDAY_TITLE];
-  return [title];
 }
 
 async function gcalFindEventsOnDate(year, month, day, titles) {
   const date = dateStr(year, month, day);
   const prevDate = previousDateStr(year, month, day);
-  const endDate = nextDateStr(year, month, day);
   const queryEndDate = nextDateStr(year, month, day + 1);
   const out = [];
-
-  for (const title of uniqueTitles(titles)) {
+  for (const title of [...new Set((titles||[]).filter(Boolean))]) {
     let pageToken = '';
     do {
-      const qs =
-        'timeMin=' + encodeURIComponent(prevDate + 'T00:00:00Z') +
+      const qs = 'timeMin=' + encodeURIComponent(prevDate + 'T00:00:00Z') +
         '&timeMax=' + encodeURIComponent(queryEndDate + 'T00:00:00Z') +
-        '&q=' + encodeURIComponent(title) +
-        '&singleEvents=true&maxResults=50' +
+        '&q=' + encodeURIComponent(title) + '&singleEvents=true&maxResults=50' +
         '&fields=nextPageToken,items(id,summary,start,end,status)' +
         (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
-
       const result = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events?' + qs);
-      const items = result.items || [];
-      items.forEach(function(ev) {
+      (result.items || []).forEach(ev => {
         if (ev.status === 'cancelled') return;
-        if (ev.summary !== title) return; // Calendar q= is fuzzy; exact match only.
+        if (ev.summary !== title) return;
         const startDate = ev.start && (ev.start.date || (ev.start.dateTime || '').slice(0, 10));
         if (startDate !== date) return;
         out.push(ev);
@@ -1344,28 +854,7 @@ async function gcalFindEventsOnDate(year, month, day, titles) {
       pageToken = result.nextPageToken || '';
     } while (pageToken);
   }
-
   return out;
-}
-
-async function gcalKeepOneEventOnDate(year, month, day, titles, preferredTitle) {
-  const matches = await gcalFindEventsOnDate(year, month, day, titles);
-  if (!matches.length) return null;
-
-  matches.sort(function(a, b) {
-    if (a.summary === preferredTitle && b.summary !== preferredTitle) return -1;
-    if (a.summary !== preferredTitle && b.summary === preferredTitle) return 1;
-    return String(a.id).localeCompare(String(b.id));
-  });
-
-  const keep = matches[0];
-  const seenIds = new Set([keep.id]);
-  for (const ev of matches.slice(1)) {
-    if (seenIds.has(ev.id)) continue;
-    seenIds.add(ev.id);
-    await gcalDelete(ev.id);
-  }
-  return keep.id;
 }
 
 async function gcalDeleteEventsOnDate(year, month, day, titles) {
@@ -1378,60 +867,25 @@ async function gcalDeleteEventsOnDate(year, month, day, titles) {
   }
 }
 
-async function gcalCreate(year, month, day, isHalf, customTitle) {
+async function gcalCreate(year, month, day, title) {
   const date = dateStr(year, month, day);
   const endDate = nextDateStr(year, month, day);
-  const title = customTitle || (isHalf ? HALF_TITLE : EVENT_TITLE);
-
   try {
-    // First, check the exact date and exact title group. This prevents duplicate
-    // “Non-Contract Day” / “Holiday” events on the same calendar day.
-    const existingId = await gcalKeepOneEventOnDate(
-      year,
-      month,
-      day,
-      dayBlockTitlesFor(title),
-      title
-    );
-    if (existingId) return existingId;
-
-    const ev = await calFetch(
-      '/calendars/' + encodeURIComponent(CAL_ID) + '/events',
-      'POST',
-      {
-        summary: title,
-        start: { date: date },
-        end: { date: endDate },
-        transparency: 'transparent'
-      }
-    );
+    const ev = await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events', 'POST', {
+      summary: title, start: { date }, end: { date: endDate }, transparency: 'transparent'
+    });
     return ev.id;
-  } catch(e) {
-    console.warn('Could not create calendar event:', e);
-    return null;
-  }
+  } catch(e) { console.warn('Could not create calendar event:', e); return null; }
 }
 
 async function gcalDelete(eventId) {
-  try {
-    await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events/' + eventId, 'DELETE');
-  } catch(e) {}
+  try { await calFetch('/calendars/' + encodeURIComponent(CAL_ID) + '/events/' + eventId, 'DELETE'); } catch(e) {}
 }
 
-async function syncHolidaysToGcal() {
-  // Manual-use helper only. Do not call this during normal page load.
-  // Only sync true holidays (days off), NOT notes-only days like Spring Break / Ed Tech Forward.
-  for (let i = 0; i < MONTHS.length; i++) {
-    const m = MONTHS[i];
-    for (const day of m.holidays) {
-      const key = `h-${i}-${day}`;
-      if (!gcalIds[key]) {
-        const id = await gcalCreate(m.year, m.month, day, false, HOLIDAY_TITLE);
-        if (id) gcalIds[key] = id;
-      }
-    }
-  }
-}
+// All titles that may appear on a "user" day (non-holiday weekday or weekend work)
+const USER_DAY_TITLES = [EVENT_TITLE, HOLIDAY_TITLE, HALF_TITLE];
+// All titles that may appear on a holiday day
+const HOL_DAY_TITLES  = [HOL_WORKED_TITLE, HOL_HALF_TITLE];
 
 // ── Calendar logic ─────────────────────────────────────────────
 function weekdaysOf(year, month) {
@@ -1447,14 +901,17 @@ function weekdaysOf(year, month) {
 function countWorked(idx) {
   const { year, month } = MONTHS[idx];
   let total = 0;
-  // Count regular weekdays
   weekdaysOf(year, month).forEach(d => {
-    if (MONTHS[idx].holidays.includes(d)) return;
+    if (MONTHS[idx].holidays.includes(d)) {
+      // Holiday: counts if user worked it
+      if (holidayWorked[idx].has(d)) total += 1;
+      else if (holidayHalf[idx].has(d)) total += 0.5;
+      return;
+    }
     if (offDays[idx].has(d))  return;
     if (halfDays[idx].has(d)) { total += 0.5; return; }
     total += 1;
   });
-  // Count user-added weekend days
   weekendDays[idx].forEach(d => {
     if (halfDays[idx].has(d)) { total += 0.5; return; }
     total += 1;
@@ -1463,29 +920,36 @@ function countWorked(idx) {
 }
 
 function globalStats() {
-  let wds = 0, off = 0, half = 0, wrk = 0;
+  let wds = 0, off = 0, half = 0, wrk = 0, holWorked = 0;
   for (let i = 0; i < MONTHS.length; i++) {
     weekdaysOf(MONTHS[i].year, MONTHS[i].month).forEach(d => {
       wds++;
-      if (MONTHS[i].holidays.includes(d)) { off++; return; }
-      if (offDays[i].has(d))  { off++;        return; }
+      if (MONTHS[i].holidays.includes(d)) {
+        // Holiday — only counts as "off" if not worked
+        if (holidayWorked[i].has(d))    { holWorked++; wrk += 1; }
+        else if (holidayHalf[i].has(d)) { holWorked++; half++; wrk += 0.5; }
+        else                             { off++; }
+        return;
+      }
+      if (offDays[i].has(d))  { off++;         return; }
       if (halfDays[i].has(d)) { half++; wrk += 0.5; return; }
       wrk++;
     });
-    // Weekend work days
     weekendDays[i].forEach(d => {
       wds++;
       if (halfDays[i].has(d)) { half++; wrk += 0.5; return; }
       wrk++;
     });
   }
-  return { wds, off, half, wrk };
+  return { wds, off, half, wrk, holWorked };
 }
 
 function buildCells(year, month) {
   const total = new Date(year, month+1, 0).getDate();
   const first = new Date(year, month, 1).getDay();
-  const blanks = first === 0 ? 4 : first === 6 ? 0 : first - 1;
+  // Sun(0)→0 blanks (first weekday is Mon of same week, no offset needed)
+  // Mon(1)→0, Tue(2)→1, Wed(3)→2, Thu(4)→3, Fri(5)→4, Sat(6)→0
+  const blanks = (first === 0 || first === 1) ? 0 : first === 6 ? 0 : first - 1;
   const cells = Array(blanks).fill(null);
   for (let d = 1; d <= total; d++) {
     const w = new Date(year, month, d).getDay();
@@ -1495,18 +959,17 @@ function buildCells(year, month) {
   return cells;
 }
 
-// ── Weekend helpers ───────────────────────────────────────────
 function weekendsOf(year, month) {
   const total = new Date(year, month+1, 0).getDate();
   const days = [];
   for (let d = 1; d <= total; d++) {
     const w = new Date(year, month, d).getDay();
-    if (w === 0 || w === 6) days.push({ day: d, dow: w }); // 0=Sun, 6=Sat
+    if (w === 0 || w === 6) days.push({ day: d, dow: w });
   }
   return days;
 }
 
-function dowName(dow) { return dow === 6 ? 'Sat' : 'Sun'; }
+function dowName(dow)     { return dow === 6 ? 'Sat' : 'Sun'; }
 function fullDowName(dow) { return dow === 6 ? 'Saturday' : 'Sunday'; }
 
 // ── Render ─────────────────────────────────────────────────────
@@ -1517,10 +980,6 @@ function renderApp() {
   wrap.innerHTML = '';
   MONTHS.forEach((_, i) => wrap.appendChild(buildCard(i)));
   updateStats();
-
-  // Important: do not write Google Calendar events during normal page load.
-  // The app should read saved state, render the calendar, and only write changes
-  // when the user clicks a day, marks a half day, or adds/removes weekend work.
   hideLoad();
 }
 
@@ -1532,36 +991,25 @@ function buildCard(idx) {
   const card = document.createElement('div');
   card.className = 'month-card';
 
-  // Month header
   const head = document.createElement('div');
   head.className = 'm-head';
-  head.innerHTML = `
-    <h2 class="m-name">${m.label}</h2>
-    <div class="m-tally" aria-label="${w} days worked in ${m.label}">
-      Days: <span class="tn" id="t-${idx}">${w}</span>
-    </div>
-  `;
+  head.innerHTML = `<h2 class="m-name">${m.label}</h2>
+    <div class="m-tally" aria-label="${w} days worked in ${m.label}">Days: <span class="tn" id="t-${idx}">${w}</span></div>`;
   card.appendChild(head);
 
-  // Day-of-week header row
   const dowRow = document.createElement('div');
   dowRow.className = 'dow-row';
   dowRow.setAttribute('aria-hidden', 'true');
   ['Mon','Tue','Wed','Thu','Fri'].forEach(d => {
-    const c = document.createElement('div');
-    c.className = 'dow-cell';
-    c.textContent = d;
-    dowRow.appendChild(c);
+    const c = document.createElement('div'); c.className = 'dow-cell'; c.textContent = d; dowRow.appendChild(c);
   });
   card.appendChild(dowRow);
 
-  // Build a grid table for screen readers
   const table = document.createElement('table');
   table.setAttribute('role', 'grid');
   table.setAttribute('aria-label', `${m.label} calendar`);
   table.style.cssText = 'width:100%;border-collapse:collapse;';
 
-  // Hidden thead for screen readers
   const thead = document.createElement('thead');
   thead.className = 'sr-only';
   thead.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);';
@@ -1569,14 +1017,12 @@ function buildCard(idx) {
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
-
   for (let r = 0; r < cells.length; r += 5) {
     const tr = document.createElement('tr');
     for (let c = 0; c < 5; c++) {
       const day = cells[r + c];
       const td = document.createElement('td');
       td.style.cssText = 'padding:0;border:none;';
-
       const btn = document.createElement('button');
       btn.className = 'day-cell';
 
@@ -1584,16 +1030,27 @@ function buildCard(idx) {
         btn.classList.add('empty');
         btn.setAttribute('aria-hidden', 'true');
         btn.setAttribute('tabindex', '-1');
-        btn.textContent = '';
       } else if (m.holidays.includes(day)) {
-        // Full closure — locked, red
-        btn.classList.add('holiday');
+        // ── HOLIDAY CELL — now editable ──────────────────────
         btn.textContent = day;
-        btn.setAttribute('aria-label', `${day} ${m.label} — Non-Contract Day (RESA Closed)`);
-        btn.setAttribute('aria-disabled', 'true');
-        btn.setAttribute('tabindex', '-1');
+        const isHolW = holidayWorked[idx].has(day);
+        const isHolH = holidayHalf[idx].has(day);
+        if (isHolW) {
+          btn.classList.add('holiday-worked');
+          btn.setAttribute('aria-label', `${day} ${m.label} — RESA Closed, but you worked this day. Click to mark as half day worked.`);
+          btn.setAttribute('aria-pressed', 'true');
+        } else if (isHolH) {
+          btn.classList.add('holiday-half');
+          btn.setAttribute('aria-label', `${day} ${m.label} — RESA Closed, half day worked. Click to mark as closed (not worked).`);
+          btn.setAttribute('aria-pressed', 'mixed');
+        } else {
+          btn.classList.add('holiday');
+          btn.setAttribute('aria-label', `${day} ${m.label} — RESA Closed. Click to mark as worked.`);
+          btn.setAttribute('aria-pressed', 'false');
+        }
+        btn.addEventListener('click', () => toggleHoliday(idx, day, btn));
       } else {
-        // User-editable day: click cycles worked → off → half → worked
+        // ── REGULAR EDITABLE DAY ──────────────────────────────
         const isOff  = offDays[idx].has(day);
         const isHalf = halfDays[idx].has(day);
         const isNote = (m.notes || []).includes(day);
@@ -1601,14 +1058,14 @@ function buildCard(idx) {
         if (isNote) btn.classList.add('noted');
         if (isOff) {
           btn.classList.add('off');
-          btn.setAttribute('aria-label', `${day} ${m.label} — day off, click to mark as half day`);
+          btn.setAttribute('aria-label', `${day} ${m.label} — day off. Click to mark as half day.`);
           btn.setAttribute('aria-pressed', 'true');
         } else if (isHalf) {
           btn.classList.add('half');
-          btn.setAttribute('aria-label', `${day} ${m.label} — half day worked, click to mark as worked`);
+          btn.setAttribute('aria-label', `${day} ${m.label} — half day worked. Click to mark as worked.`);
           btn.setAttribute('aria-pressed', 'mixed');
         } else {
-          btn.setAttribute('aria-label', `${day} ${m.label} — worked, click to mark as day off`);
+          btn.setAttribute('aria-label', `${day} ${m.label} — worked. Click to mark as day off.`);
           btn.setAttribute('aria-pressed', 'false');
         }
         btn.addEventListener('click', () => toggle(idx, day, btn));
@@ -1621,7 +1078,6 @@ function buildCard(idx) {
   table.appendChild(tbody);
   card.appendChild(table);
 
-  // Holiday note
   if (m.note) {
     const strip = document.createElement('div');
     strip.className = 'h-strip';
@@ -1630,27 +1086,119 @@ function buildCard(idx) {
     card.appendChild(strip);
   }
 
-  // Weekend work days section
-  const wkndSection = buildWeekendSection(idx);
-  card.appendChild(wkndSection);
-
+  card.appendChild(buildWeekendSection(idx));
   return card;
 }
 
+// ── Toggle holiday day ─────────────────────────────────────────
+// Cycle: closed (holiday) → holiday-worked → holiday-half → closed
+async function toggleHoliday(idx, day, btn) {
+  const m = MONTHS[idx];
+  const key = `h-${idx}-${day}`;
+
+  if (holidayWorked[idx].has(day)) {
+    // worked → half
+    holidayWorked[idx].delete(day);
+    holidayHalf[idx].add(day);
+    btn.className = 'day-cell holiday-half';
+    btn.setAttribute('aria-pressed', 'mixed');
+    btn.setAttribute('aria-label', `${day} ${m.label} — RESA Closed, half day worked. Click to mark as closed (not worked).`);
+    if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
+    await gcalDeleteEventsOnDate(m.year, m.month, day, HOL_DAY_TITLES);
+    const id = await gcalCreate(m.year, m.month, day, HOL_HALF_TITLE);
+    if (id) gcalIds[key] = id;
+
+  } else if (holidayHalf[idx].has(day)) {
+    // half → closed (not worked)
+    holidayHalf[idx].delete(day);
+    btn.className = 'day-cell holiday';
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('aria-label', `${day} ${m.label} — RESA Closed. Click to mark as worked.`);
+    if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
+    await gcalDeleteEventsOnDate(m.year, m.month, day, HOL_DAY_TITLES);
+
+  } else {
+    // closed → worked
+    holidayWorked[idx].add(day);
+    btn.className = 'day-cell holiday-worked';
+    btn.setAttribute('aria-pressed', 'true');
+    btn.setAttribute('aria-label', `${day} ${m.label} — RESA Closed, but you worked this day. Click to mark as half day worked.`);
+    await gcalDeleteEventsOnDate(m.year, m.month, day, HOL_DAY_TITLES);
+    const id = await gcalCreate(m.year, m.month, day, HOL_WORKED_TITLE);
+    if (id) gcalIds[key] = id;
+  }
+
+  refreshTally(idx);
+  updateStats();
+  scheduleSave();
+}
+
+// ── Toggle regular weekday ─────────────────────────────────────
+// Cycle: worked → off → half → worked
+async function toggle(idx, day, btn) {
+  const m   = MONTHS[idx];
+  const key = `u-${idx}-${day}`;
+  const isNote = (m.notes || []).includes(day);
+
+  if (offDays[idx].has(day)) {
+    // off → half
+    offDays[idx].delete(day);
+    halfDays[idx].add(day);
+    btn.className = 'day-cell half' + (isNote ? ' noted' : '');
+    btn.setAttribute('aria-pressed', 'mixed');
+    btn.setAttribute('aria-label', `${day} ${m.label} — half day worked. Click to mark as worked.`);
+    if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
+    await gcalDeleteEventsOnDate(m.year, m.month, day, USER_DAY_TITLES);
+    const id = await gcalCreate(m.year, m.month, day, HALF_TITLE);
+    if (id) gcalIds[key] = id;
+
+  } else if (halfDays[idx].has(day)) {
+    // half → worked
+    halfDays[idx].delete(day);
+    btn.className = 'day-cell' + (isNote ? ' noted' : '');
+    btn.setAttribute('aria-pressed', 'false');
+    btn.setAttribute('aria-label', `${day} ${m.label} — worked. Click to mark as day off.`);
+    if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
+    await gcalDeleteEventsOnDate(m.year, m.month, day, USER_DAY_TITLES);
+
+  } else {
+    // worked → off
+    offDays[idx].add(day);
+    btn.className = 'day-cell off' + (isNote ? ' noted' : '');
+    btn.setAttribute('aria-pressed', 'true');
+    btn.setAttribute('aria-label', `${day} ${m.label} — day off. Click to mark as half day.`);
+    await gcalDeleteEventsOnDate(m.year, m.month, day, USER_DAY_TITLES);
+    const id = await gcalCreate(m.year, m.month, day, EVENT_TITLE);
+    if (id) gcalIds[key] = id;
+  }
+
+  refreshTally(idx);
+  updateStats();
+  scheduleSave();
+}
+
+function refreshTally(idx) {
+  const w = countWorked(idx);
+  const tally = document.getElementById(`t-${idx}`);
+  if (tally) {
+    tally.textContent = w % 1 === 0 ? w : w.toFixed(1);
+    tally.closest('.m-tally').setAttribute('aria-label', `${w} days worked in ${MONTHS[idx].label}`);
+  }
+}
+
+// ── Weekend work days ──────────────────────────────────────────
 function buildWeekendSection(idx) {
   const m = MONTHS[idx];
   const wrap = document.createElement('div');
   wrap.className = 'weekend-section';
   wrap.id = `wknd-section-${idx}`;
 
-  // Show any already-added weekend days
   const addedWrap = document.createElement('div');
   addedWrap.className = 'weekend-added';
   addedWrap.id = `wknd-added-${idx}`;
   renderAddedWeekendDays(idx, addedWrap);
   wrap.appendChild(addedWrap);
 
-  // "Add weekend day" button
   const addBtn = document.createElement('button');
   addBtn.className = 'btn-add-weekend';
   addBtn.setAttribute('aria-expanded', 'false');
@@ -1660,7 +1208,6 @@ function buildWeekendSection(idx) {
   addBtn.addEventListener('click', () => togglePicker(idx, addBtn));
   wrap.appendChild(addBtn);
 
-  // Picker (hidden by default)
   const picker = document.createElement('div');
   picker.className = 'weekend-picker';
   picker.id = `wknd-picker-${idx}`;
@@ -1705,17 +1252,14 @@ function renderAddedWeekendDays(idx, container) {
     const chip = document.createElement('span');
     chip.className = 'weekend-chip';
     chip.setAttribute('aria-label', `${fullDowName(dow)} ${day} added as work day`);
-
     const lbl = document.createElement('span');
     lbl.textContent = `${dowName(dow)} ${day}`;
     chip.appendChild(lbl);
-
     const removeBtn = document.createElement('button');
     removeBtn.className = 'chip-remove';
     removeBtn.setAttribute('aria-label', `Remove ${fullDowName(dow)} ${day} as work day`);
     removeBtn.innerHTML = '×';
     removeBtn.addEventListener('click', async () => {
-      // Find corresponding picker button and un-toggle
       const picker = document.getElementById(`wknd-picker-${idx}`);
       const dayBtn = picker ? picker.querySelector(`[data-day="${day}"]`) : null;
       await toggleWeekendDay(idx, day, dow, dayBtn);
@@ -1729,9 +1273,8 @@ async function toggleWeekendDay(idx, day, dow, dayBtn) {
   const m = MONTHS[idx];
   const key = `w-${idx}-${day}`;
   if (weekendDays[idx].has(day)) {
-    // Remove
     weekendDays[idx].delete(day);
-    halfDays[idx].delete(day); // clear any half state too
+    halfDays[idx].delete(day);
     if (dayBtn) {
       dayBtn.classList.remove('added');
       dayBtn.setAttribute('aria-pressed', 'false');
@@ -1740,7 +1283,6 @@ async function toggleWeekendDay(idx, day, dow, dayBtn) {
     if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
     await gcalDeleteEventsOnDate(m.year, m.month, day, [WEEKEND_TITLE]);
   } else {
-    // Add
     weekendDays[idx].add(day);
     if (dayBtn) {
       dayBtn.classList.add('added');
@@ -1748,96 +1290,39 @@ async function toggleWeekendDay(idx, day, dow, dayBtn) {
       dayBtn.setAttribute('aria-label', `${fullDowName(dow)} ${day} ${m.label} — added as work day, click to remove`);
     }
     await gcalDeleteEventsOnDate(m.year, m.month, day, [HALF_TITLE]);
-    const id = await gcalCreate(m.year, m.month, day, false, WEEKEND_TITLE);
+    const id = await gcalCreate(m.year, m.month, day, WEEKEND_TITLE);
     if (id) gcalIds[key] = id;
   }
-  // Refresh chips
   const addedWrap = document.getElementById(`wknd-added-${idx}`);
   if (addedWrap) renderAddedWeekendDays(idx, addedWrap);
-  // Refresh tally
-  const w = countWorked(idx);
-  const tally = document.getElementById(`t-${idx}`);
-  if (tally) {
-    tally.textContent = w % 1 === 0 ? w : w.toFixed(1);
-    tally.closest('.m-tally').setAttribute('aria-label', `${w} days worked in ${m.label}`);
-  }
+  refreshTally(idx);
   updateStats();
   scheduleSave();
 }
 
-async function toggle(idx, day, btn) {
-  const m   = MONTHS[idx];
-  const key = `u-${idx}-${day}`;
-  const isNote = (m.notes || []).includes(day);
-
-  // Cycle: worked → off → half → worked
-  if (offDays[idx].has(day)) {
-    // off → half
-    offDays[idx].delete(day);
-    halfDays[idx].add(day);
-    btn.classList.remove('off');
-    btn.classList.add('half');
-    btn.setAttribute('aria-pressed', 'mixed');
-    btn.setAttribute('aria-label', `${day} ${m.label} — half day worked, click to mark as worked`);
-    // Remove any full-day-off events on this date; add exactly one half-day event.
-    if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
-    await gcalDeleteEventsOnDate(m.year, m.month, day, [EVENT_TITLE, HOLIDAY_TITLE]);
-    const id = await gcalCreate(m.year, m.month, day, true);
-    if (id) gcalIds[key] = id;
-  } else if (halfDays[idx].has(day)) {
-    // half → worked
-    halfDays[idx].delete(day);
-    btn.classList.remove('half');
-    btn.setAttribute('aria-pressed', 'false');
-    btn.setAttribute('aria-label', `${day} ${m.label} — worked, click to mark as day off`);
-    if (gcalIds[key]) { await gcalDelete(gcalIds[key]); delete gcalIds[key]; }
-    await gcalDeleteEventsOnDate(m.year, m.month, day, [HALF_TITLE]);
-  } else {
-    // worked → off
-    offDays[idx].add(day);
-    btn.classList.add('off');
-    btn.setAttribute('aria-pressed', 'true');
-    btn.setAttribute('aria-label', `${day} ${m.label} — day off, click to mark as half day`);
-    await gcalDeleteEventsOnDate(m.year, m.month, day, [HALF_TITLE]);
-    const id = await gcalCreate(m.year, m.month, day, false);
-    if (id) gcalIds[key] = id;
-  }
-
-  // Keep note style if applicable
-  if (isNote) btn.classList.add('noted');
-
-  const w = countWorked(idx);
-  const tally = document.getElementById(`t-${idx}`);
-  tally.textContent = w % 1 === 0 ? w : w.toFixed(1);
-  tally.closest('.m-tally').setAttribute('aria-label', `${w} days worked in ${m.label}`);
-  updateStats();
-  scheduleSave();
-}
-
+// ── Stats ──────────────────────────────────────────────────────
 function updateStats() {
-  const { wds, off, wrk } = globalStats();
+  const { wds, off, half, wrk, holWorked } = globalStats();
   const wrkFmt = wrk % 1 === 0 ? wrk : wrk.toFixed(1);
-  document.getElementById('top-total').textContent  = wrkFmt;
-  document.getElementById('f-total').textContent    = wrkFmt;
-  document.getElementById('s-weekdays').textContent = wds;
-  document.getElementById('s-off').textContent      = off;
-  document.getElementById('s-half').textContent     = globalStats().half;
-  document.getElementById('s-worked').textContent   = wrk % 1 === 0 ? wrk : wrk.toFixed(1);
+  document.getElementById('top-total').textContent   = wrkFmt;
+  document.getElementById('f-total').textContent     = wrkFmt;
+  document.getElementById('s-weekdays').textContent  = wds;
+  document.getElementById('s-off').textContent       = off;
+  document.getElementById('s-half').textContent      = half;
+  document.getElementById('s-holworked').textContent = holWorked;
+  document.getElementById('s-worked').textContent    = wrkFmt;
   const diff = wrk - 200;
   const sg = document.getElementById('s-goal');
   const fg = document.getElementById('f-goal');
   if (diff === 0) {
-    sg.textContent = '✓ 200-Day Goal Met!';
-    sg.className = 's-goal met';
+    sg.textContent = '✓ 200-Day Goal Met!'; sg.className = 's-goal met';
     fg.textContent = '✓ 200-Day Goal Met';
   } else if (diff > 0) {
-    sg.textContent = `${diff} day${diff===1?'':'s'} over goal`;
-    sg.className = 's-goal over';
+    sg.textContent = `${diff} day${diff===1?'':'s'} over goal`; sg.className = 's-goal over';
     fg.textContent = `${diff} over goal`;
   } else {
     const n = Math.abs(diff);
-    sg.textContent = `${n} day${n===1?'':'s'} to reach 200`;
-    sg.className = 's-goal under';
+    sg.textContent = `${n} day${n===1?'':'s'} to reach 200`; sg.className = 's-goal under';
     fg.textContent = `Goal: 200 — ${n} to go`;
   }
 }
@@ -1846,12 +1331,9 @@ function updateStats() {
 function showLoad(msg) {
   const el = document.getElementById('loading');
   document.getElementById('loading-msg').textContent = msg;
-  el.style.display = 'flex';
-  el.setAttribute('aria-label', msg);
+  el.style.display = 'flex'; el.setAttribute('aria-label', msg);
 }
-function hideLoad() {
-  document.getElementById('loading').style.display = 'none';
-}
+function hideLoad() { document.getElementById('loading').style.display = 'none'; }
 
 // ── Init ───────────────────────────────────────────────────────
 window.addEventListener('load', () => {
@@ -1860,171 +1342,137 @@ window.addEventListener('load', () => {
   }
 });
 </script>
-<div id="print-view" aria-hidden="true"></div>
 
+<!-- ── PRINT VIEW ── -->
+<div id="print-view" aria-hidden="true"></div>
 <script>
-// ── Build print-view DOM ───────────────────────────────────────
-// Called after renderApp so state is populated.
 function buildPrintView() {
-  var pv = document.getElementById('print-view');
+  const pv = document.getElementById('print-view');
   pv.innerHTML = '';
 
-  // Header
-  var hdr = document.createElement('div');
+  const hdr = document.createElement('div');
   hdr.className = 'pv-header';
-  hdr.innerHTML =
-    '<div class="pv-logo">Berrien<span>RESA</span></div>' +
-    '<div class="pv-title">2026-2027 School Year Calendar</div>';
+  hdr.innerHTML = '<div class="pv-logo">Berrien<span>RESA</span></div><div class="pv-title">2026-2027 School Year Calendar</div>';
   pv.appendChild(hdr);
 
-  // Name line — print the signed-in user's full Google profile name
-  var nameLine = document.createElement('div');
+  const nameLine = document.createElement('div');
   nameLine.className = 'pv-name-line';
-  var nameVal = currentUserFullName || (document.getElementById('u-name') ? document.getElementById('u-name').textContent : '');
+  const nameVal = currentUserFullName || (document.getElementById('u-name') ? document.getElementById('u-name').textContent : '');
   nameLine.appendChild(document.createTextNode('Name: '));
-  var nameSpan = document.createElement('span');
+  const nameSpan = document.createElement('span');
   nameSpan.textContent = nameVal || '________________________';
   nameLine.appendChild(nameSpan);
   pv.appendChild(nameLine);
 
-  // Month pairs (2 per row)
-  var pairs = [
-    [0,1],[2,3],[4,5],[6,7],[8,9],[10,11]
-  ];
-
-  pairs.forEach(function(pair) {
-    var row = document.createElement('div');
+  const pairs = [[0,1],[2,3],[4,5],[6,7],[8,9],[10,11]];
+  pairs.forEach(pair => {
+    const row = document.createElement('div');
     row.className = 'pv-row';
-
-    var leftIdx  = pair[0];
-    var rightIdx = pair[1];
-
-    // Left note column
-    row.appendChild(buildNoteCol(leftIdx, 'left'));
-    // Left calendar
-    row.appendChild(buildPrintCal(leftIdx));
-    // Spacer
-    var sp = document.createElement('div');
-    sp.className = 'pv-spacer';
-    row.appendChild(sp);
-    // Right calendar
-    row.appendChild(buildPrintCal(rightIdx));
-    // Right note column
-    row.appendChild(buildNoteCol(rightIdx, 'right'));
-
+    row.appendChild(buildNoteCol(pair[0], 'left'));
+    row.appendChild(buildPrintCal(pair[0]));
+    const sp = document.createElement('div'); sp.className = 'pv-spacer'; row.appendChild(sp);
+    row.appendChild(buildPrintCal(pair[1]));
+    row.appendChild(buildNoteCol(pair[1], 'right'));
     pv.appendChild(row);
   });
 
-  // Footer
-  var { wrk } = globalStats();
-  var wrkFmt = wrk % 1 === 0 ? wrk : wrk.toFixed(1);
-  var footer = document.createElement('div');
+  const { wrk } = globalStats();
+  const wrkFmt = wrk % 1 === 0 ? wrk : wrk.toFixed(1);
+  const footer = document.createElement('div');
   footer.className = 'pv-footer';
-  footer.innerHTML =
-    '<span>Total Number of Days Worked Is ...</span>' +
-    '<span class="pv-total-num">' + wrkFmt + '</span>';
+  footer.innerHTML = '<span>Total Number of Days Worked Is ...</span><span class="pv-total-num">' + wrkFmt + '</span>';
   pv.appendChild(footer);
 }
 
 function buildNoteCol(idx, side) {
-  var m = MONTHS[idx];
-  var w = countWorked(idx);
-  var wFmt = w % 1 === 0 ? w : w.toFixed(1);
-
-  var div = document.createElement('div');
+  const m = MONTHS[idx];
+  const w = countWorked(idx);
+  const wFmt = w % 1 === 0 ? w : w.toFixed(1);
+  const div = document.createElement('div');
   div.className = 'pv-note' + (side === 'right' ? ' pv-note-right' : '');
-
-  // Day count
-  var daysDiv = document.createElement('div');
+  const daysDiv = document.createElement('div');
   daysDiv.className = 'pv-days';
   daysDiv.innerHTML = 'Number of Days = <strong>' + wFmt + '</strong>';
   div.appendChild(daysDiv);
-
-  // Holiday note text
   if (m.note) {
-    var noteDiv = document.createElement('div');
+    const noteDiv = document.createElement('div');
     noteDiv.className = 'pv-note-text';
     noteDiv.textContent = m.note;
     div.appendChild(noteDiv);
   }
-
-  // Weekend work days note
+  // Holiday days worked note
+  const hwDays = [...holidayWorked[idx], ...holidayHalf[idx]].sort((a,b)=>a-b);
+  if (hwDays.length > 0) {
+    const hwDiv = document.createElement('div');
+    hwDiv.className = 'pv-note-text';
+    hwDiv.textContent = 'Holiday days worked: ' + hwDays.map(d => {
+      const isH = holidayHalf[idx].has(d);
+      return d + (isH ? '½' : '');
+    }).join(', ');
+    div.appendChild(hwDiv);
+  }
   if (weekendDays[idx] && weekendDays[idx].size > 0) {
-    var wkndDiv = document.createElement('div');
+    const wkndDiv = document.createElement('div');
     wkndDiv.className = 'pv-note-text';
-    var wkndDays = [...weekendDays[idx]].sort(function(a,b){return a-b;});
-    wkndDiv.textContent = 'Weekend work days: ' + wkndDays.map(function(d) {
-      var dow = new Date(m.year, m.month, d).getDay();
+    const wkndDays = [...weekendDays[idx]].sort((a,b)=>a-b);
+    wkndDiv.textContent = 'Weekend work days: ' + wkndDays.map(d => {
+      const dow = new Date(m.year, m.month, d).getDay();
       return (dow === 6 ? 'Sat' : 'Sun') + ' ' + d;
     }).join(', ');
     div.appendChild(wkndDiv);
   }
-
   return div;
 }
 
 function buildPrintCal(idx) {
-  var m = MONTHS[idx];
-  var table = document.createElement('table');
+  const m = MONTHS[idx];
+  const table = document.createElement('table');
   table.className = 'pv-cal';
 
-  // Month header spanning 5 cols
-  var thead = document.createElement('thead');
-  var hdrRow = document.createElement('tr');
-  var hdrCell = document.createElement('td');
+  const thead = document.createElement('thead');
+  const hdrRow = document.createElement('tr');
+  const hdrCell = document.createElement('td');
   hdrCell.setAttribute('colspan', '5');
   hdrCell.className = 'pv-month-hdr';
   hdrCell.textContent = m.label;
   hdrRow.appendChild(hdrCell);
   thead.appendChild(hdrRow);
 
-  // DOW row
-  var dowRow = document.createElement('tr');
+  const dowRow = document.createElement('tr');
   dowRow.className = 'pv-dow';
-  ['M','T','W','T','F'].forEach(function(d) {
-    var td = document.createElement('td');
-    td.textContent = d;
-    dowRow.appendChild(td);
-  });
+  ['M','T','W','T','F'].forEach(d => { const td = document.createElement('td'); td.textContent = d; dowRow.appendChild(td); });
   thead.appendChild(dowRow);
   table.appendChild(thead);
 
-  // Build cells
-  var total = new Date(m.year, m.month+1, 0).getDate();
-  var firstDow = new Date(m.year, m.month, 1).getDay();
-  var blanks = firstDow === 0 ? 4 : firstDow === 6 ? 0 : firstDow - 1;
-  var cells = [];
-  for (var i = 0; i < blanks; i++) cells.push(null);
-  for (var d = 1; d <= total; d++) {
-    var w = new Date(m.year, m.month, d).getDay();
+  const total  = new Date(m.year, m.month+1, 0).getDate();
+  const first  = new Date(m.year, m.month, 1).getDay();
+  const blanks = (first === 0 || first === 1) ? 0 : first === 6 ? 0 : first - 1;
+  const cells  = [];
+  for (let i = 0; i < blanks; i++) cells.push(null);
+  for (let d = 1; d <= total; d++) {
+    const w = new Date(m.year, m.month, d).getDay();
     if (w >= 1 && w <= 5) cells.push(d);
   }
   while (cells.length % 5) cells.push(null);
 
-  // Also collect weekend work days as extras after the grid
-  var wkndList = weekendDays[idx] ? [...weekendDays[idx]].sort(function(a,b){return a-b;}) : [];
-
-  var tbody = document.createElement('tbody');
-  for (var r = 0; r < cells.length; r += 5) {
-    var tr = document.createElement('tr');
-    for (var c = 0; c < 5; c++) {
-      var day = cells[r + c];
-      var td = document.createElement('td');
+  const tbody = document.createElement('tbody');
+  for (let r = 0; r < cells.length; r += 5) {
+    const tr = document.createElement('tr');
+    for (let c = 0; c < 5; c++) {
+      const day = cells[r + c];
+      const td = document.createElement('td');
       if (!day) {
-        td.className = 'pv-empty';
-        td.innerHTML = '&nbsp;';
+        td.className = 'pv-empty'; td.innerHTML = '&nbsp;';
       } else {
         td.className = 'pv-day';
         td.textContent = day;
         if (m.holidays.includes(day)) {
-          td.className += ' pv-holiday';
-        } else if (offDays[idx].has(day)) {
-          td.className += ' pv-off';
-        } else if (halfDays[idx].has(day)) {
-          td.className += ' pv-half';
-        } else if ((m.notes || []).includes(day)) {
-          td.className += ' pv-noted';
-        }
+          if (holidayWorked[idx].has(day))   td.className += ' pv-holiday-worked';
+          else if (holidayHalf[idx].has(day)) td.className += ' pv-holiday-half';
+          else                                 td.className += ' pv-holiday';
+        } else if (offDays[idx].has(day))        { td.className += ' pv-off'; }
+        else if (halfDays[idx].has(day))          { td.className += ' pv-half'; }
+        else if ((m.notes || []).includes(day))   { td.className += ' pv-noted'; }
       }
       tr.appendChild(td);
     }
@@ -2034,12 +1482,8 @@ function buildPrintCal(idx) {
   return table;
 }
 
-// Hook into window.print to build the view first
-var _origPrint = window.print.bind(window);
-window.print = function() {
-  buildPrintView();
-  setTimeout(function() { _origPrint(); }, 100);
-};
+const _origPrint = window.print.bind(window);
+window.print = function() { buildPrintView(); setTimeout(() => _origPrint(), 100); };
 </script>
 </body>
 </html>
