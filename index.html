@@ -768,7 +768,7 @@ async function loadDrive() {
       if (data.weekendDays)   data.weekendDays.forEach((arr,i)   => { if (i < MONTHS.length) weekendDays[i]   = new Set(arr); });
       if (data.holidayWorked) data.holidayWorked.forEach((arr,i) => { if (i < MONTHS.length) holidayWorked[i] = new Set(arr); });
       if (data.holidayHalf)   data.holidayHalf.forEach((arr,i)   => { if (i < MONTHS.length) holidayHalf[i]   = new Set(arr); });
-      if (data.gcalIds) gcalIds = data.gcalIds;
+      // gcalIds is session-only and not persisted (see saveDrive)
     } catch(e) { console.warn('Could not parse saved state', e); }
   } else {
     await importFromCalendar();
@@ -786,8 +786,8 @@ async function saveDrive() {
     weekendDays:   weekendDays.map(s   => [...s]),
     holidayWorked: holidayWorked.map(s => [...s]),
     holidayHalf:   holidayHalf.map(s   => [...s]),
-    gcalIds,
-  });
+  }); // gcalIds intentionally omitted — session-only, storing it can exceed the
+    // Calendar API ~8KB description limit, silently truncating JSON and losing state
   const eventBody = {
     summary: STATE_MARKER,
     description,
